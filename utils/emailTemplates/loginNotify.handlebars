@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Login to Your Vestra Account</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f4f4f9;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 600px; margin: 40px auto;">
+    <tr>
+      <td style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <!-- Header -->
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+          <tr>
+            <td style="background-color: #1a73e8; padding: 20px; text-align: center;">
+              <h1 style="color: #ffffff; font-size: 24px; margin: 0;">New Login to Your Vestra Account</h1>
+            </td>
+          </tr>
+        </table>
+        <!-- Body -->
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+          <tr>
+            <td style="padding: 40px 30px;">
+              <p style="font-size: 16px; color: #202124; margin: 0 0 20px;">Hello {{name}},</p>
+              <p style="font-size: 16px; color: #202124; margin: 0 0 20px;">
+                We detected a new login to your Vestra account. Here are the details:
+              </p>
+              <ul style="font-size: 16px; color: #202124; margin: 0 0 20px; padding-left: 20px;">
+                <li><strong>City:</strong> {{city}}</li>
+                <li><strong>Country:</strong> {{country}}</li>
+                <li><strong>Device:</strong> {{device}}</li>
+                <li><strong>IP Address:</strong> {{ipAddress}}</li>
+                <li><strong>Time:</strong> {{loginTime}}</li>
+              </ul>
+              <p style="font-size: 16px; color: #202124; margin: 0 0 20px;">
+                If this was you, no action is needed. If you don't recognize this login, please secure your account immediately.
+              </p>
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="https://Vestra.com/reset-password" style="display: inline-block; background-color: #1a73e8; color: #ffffff; font-size: 16px; padding: 12px 24px; border-radius: 6px; text-decoration: none;">
+                  Secure Your Account
+                </a>
+              </div>
+              <p style="font-size: 16px; color: #202124; margin: 0;">
+                Best regards,<br>The Vestra Team
+              </p>
+            </td>
+          </tr>
+        </table>
+        <!-- Footer -->
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+          <tr>
+            <td style="background-color: #f4f4f9; padding: 20px; text-align: center; font-size: 12px; color: #5f6368;">
+              <p style="margin: 0;">© {{year}} Vestra. All rights reserved.</p>
+              <p style="margin: 5px 0 0;">
+                <a href="https://Vestra.com/support" style="color: #1a73e8; text-decoration: none;">Support</a> | 
+                <a href="https://Vestra.com/privacy" style="color: #1a73e8; text-decoration: none;">Privacy Policy</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
