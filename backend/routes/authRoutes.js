@@ -12,12 +12,14 @@ const {
   linkAccount,
   switchAccount,
   logout,
+  verifyResetOtp,
 } = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
 
 router.post('/register', register);
 router.post('/login', login);
 router.post('/forgot-password', forgotPassword);
+router.post('/verify-reset-otp', verifyResetOtp);
 router.post('/check-username', checkUsername)
 router.post('/resend-verification', resendVerificationCode);
 router.put('/reset-password/:token', resetPassword);

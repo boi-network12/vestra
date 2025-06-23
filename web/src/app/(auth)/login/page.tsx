@@ -1,6 +1,6 @@
 "use client";
 import { useAuth } from "@/hooks/authHooks";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   isMobile,
   isTablet,
@@ -46,27 +46,27 @@ export default function Login() {
         if (!validateForm()) return;
 
         const loginData = {
-            email: form.email,
-            password: form.password,
+        email: form.email,
+        password: form.password,
         };
 
         const success = await login(loginData);
-
         if (success) {
-            router.replace("/home")
-        } else if (error && error.toLowerCase().includes('verify your account')) {
-            await localStorage.setItem('pending verification', form.email);
-            toast.info("please verify your email");
-            setTimeout(() => {
-                console.log('Navigating to verify with email:', form.email); // Debug log
-                router.push(`/verify?email=${encodeURIComponent(form.email)}`);
-            }, 1000)
-        } else if (error && error.includes('Too many verification requests')) {
-            toast.warning("")
-        } else {
-            toast.error("Login failed ")
+        router.replace("/home");
         }
     };
+
+    useEffect(() => {
+        if (
+        error &&
+        error.toLowerCase().includes("please verify your account")
+        ) {
+        localStorage.setItem("pendingVerificationEmail", form.email);
+        setTimeout(() => {
+            router.push(`/verify?email=${encodeURIComponent(form.email)}`);
+        }, 1000); // Delay to allow toast to display
+        }
+    }, [error, form.email, router]);
 
     const shareProps = {
         form,

@@ -31,7 +31,8 @@ const compileTemplate = (templateName, context) => {
 // Send verification email
 exports.sendVerificationEmail = async (email, name, code) => {
   try {
-    const html = compileTemplate('verification', {
+    const templateName = code.length === 6 ? 'forgotpassword' : 'verification';
+    const html = compileTemplate(templateName, {
       name,
       code,
       year: new Date().getFullYear(),
@@ -40,14 +41,14 @@ exports.sendVerificationEmail = async (email, name, code) => {
     const mailOptions = {
       from: `"Vestra" <${process.env.EMAIL_USERNAME}>`,
       to: email,
-      subject: 'Verify Your Email Address',
+      subject: code.length === 6 ? 'Password Reset OTP' : 'Verify Your Email Address',
       html,
     };
 
     await transporter.sendMail(mailOptions);
-    console.log(`Verification email sent to ${email}`);
+    console.log(`Email sent to ${email}`);
   } catch (error) {
-    console.error(`Error sending verification email to ${email}:`, error);
+    console.error(`Error sending email to ${email}:`, error);
     throw new Error('Email sending failed');
   }
 };

@@ -141,6 +141,11 @@ userSchema.add({
   },
 });
 
+userSchema.add({
+  passwordResetOtp: String,
+  passwordResetOtpExpires: Date,
+});
+
 // Password hashing
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
@@ -228,12 +233,12 @@ userSchema.methods.createVerificationToken = function () {
   return verificationToken;
 };
 
-// userSchema.add({
-//   verificationAttempts: {
-//     count: { type: Number, default: 0 },
-//     lastAttempt: { type: Date },
-//   },
-// });
+userSchema.methods.createPasswordResetOtp = function () {
+  const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
+  this.passwordResetOtp = otp;
+  this.passwordResetOtpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+  return otp;
+};
 
 // Compare password
 userSchema.methods.comparePassword = async function (candidatePassword) {

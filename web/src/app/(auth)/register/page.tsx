@@ -2,6 +2,7 @@
 import { useAuth } from '@/hooks/authHooks';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react'
+import { toast } from 'react-toastify';
 
 interface FormErrors {
   firstName?: string;
@@ -51,10 +52,18 @@ export default function Register() {
       });
 
       if (success) {
-        router.replace("/verify")
+        await localStorage.setItem('pendingVerificationEmail', form.email);
+        toast.info('Please verify your email to complete registration.');
+        setTimeout(() => {
+              console.log('Navigating to verify with email:', form.email); // Debug log
+              router.push(`/verify?email=${encodeURIComponent(form.email)}`);
+          }, 1000)
+      } else {
+        toast.error('Registration failed. Please try again.');
       }
     }
   };
+
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;

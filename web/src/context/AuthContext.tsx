@@ -4,10 +4,9 @@ import { createContext, ReactNode, useCallback, useEffect, useState } from "reac
 import axios, { AxiosError } from "axios";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import 'react-toastify/dist/ReactToastify.css';
+import "react-toastify/dist/ReactToastify.css";
 import { User } from "@/types/user";
 import { API_URL } from "@/config/apiConfig";
-
 
 interface LinkedAccount {
   _id: string;
@@ -27,25 +26,24 @@ interface AuthContextType {
   linkedAccounts: LinkedAccount[];
   isLoading: boolean;
   error: string | null;
-  alert: { visible: boolean; message: string; type: "info" | "success" | "error" };
   register: (data: RegisterData) => Promise<boolean>;
   login: (data: LoginData) => Promise<boolean>;
   verifyUser: (code: string) => Promise<boolean>;
   resendVerificationCode: (data: { email: string }) => Promise<boolean>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
-  hideAlert: () => void;
   linkAccount: (data: LoginData) => Promise<boolean>;
   switchAccount: (accountId: string) => Promise<boolean>;
+  forgotPassword: (email: string) => Promise<boolean>;
+  verifyResetOtp: (email: string, code: string) => Promise<boolean>;
+  resetPassword: (token: string, password: string) => Promise<boolean>;
 }
-
 
 interface RegisterData {
   email: string;
   password: string;
   firstName: string;
   lastName: string;
-//   middleName?: string;
   location?: {
     latitude?: number;
     longitude?: number;
@@ -67,154 +65,141 @@ interface LoginData {
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// AuthProvider components
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-    const [user, setUser] = useState<User | null>(null);
-    const [linkedAccounts, setLinkedAccounts] = useState<LinkedAccount[]>([]);
-    const [isLoading, setIsLoading] = useState<boolean>(false);
-    const [error, setError] = useState<string | null>(null);
-    const [alert, setAlert] = useState<{
-        visible: boolean;
-        message: string;
-        type: "info" | "success" | "error";
-    }>({ visible: false, message: "", type: "info" });
-    const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
+  const [linkedAccounts, setLinkedAccounts] = useState<LinkedAccount[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
-    const showAlert = (message: string, type: "info" | "success" | "error" = "info") => {
-        setAlert({ visible: true, message, type });
-        toast[type](message, { position: "top-right" });
-    };
+  const showAlert = (
+    message: string,
+    type: "info" | "success" | "error" = "info"
+  ) => {
+    toast[type](message, {
+      position: "top-center",
+      autoClose: 5000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+    });
+  };
 
-    const hideAlert = () => {
-        setAlert({ ...alert, visible: false });
-    };
-
-    const getUserLocation = async (): Promise<{
-        latitude: number | null;
-        longitude: number | null;
-        city: string;
-        country: string
-    }> => {
-        try {
-            if (!navigator.geolocation) {
-                console.log("Geolocation not support");
-                return { latitude: null, longitude: null, city: "unknown", country: "unknown"}
-            }
-
-            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-                navigator.geolocation.getCurrentPosition(resolve, reject);
-            });
-
-            const { latitude, longitude } = position.coords;
-            // Optional: Reverse geocoding (e.g., using a third-party API like Google Maps or OpenStreetMap)
-            const response = await axios.get(
-                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
-            );
-            const { address } = response.data;
-
-            return {
-                latitude,
-                longitude,
-                city: address.city || "unknown",
-                country: address.country || "unknown",
-            };
-
-        } catch (err) {
-            console.error("Error getting location:", err);
-            return { latitude: null, longitude: null, city: "unknown", country: "unknown" };
-        }
+  const getUserLocation = async (): Promise<{
+    latitude: number | null;
+    longitude: number | null;
+    city: string;
+    country: string;
+  }> => {
+    if (typeof window === "undefined" || !navigator.geolocation) {
+      return { latitude: null, longitude: null, city: "unknown", country: "unknown" };
     }
 
-    const fetchLinkedAccounts = useCallback(async (token: string) => {
-        try {
-        const response = await axios.get(`${API_URL}/api/auth/linked-accounts`, {
-            headers: { Authorization: `Bearer ${token}` },
-        });
-        if (response.data.success) {
-            setLinkedAccounts(response.data.data);
-        } else {
-            showAlert("Failed to fetch linked accounts", "error");
-        }
-        } catch (err) {
-        console.error("Error fetching linked accounts:", err);
-        }
-    }, []);
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject);
+      });
 
-    const checkAuth = useCallback(async () => {
-        setIsLoading(true);
-        try {
-            const token = localStorage.getItem("token");
-        if (!token) {
-            setUser(null);
-            return;
-        }
+      const { latitude, longitude } = position.coords;
+      const response = await axios.get(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+      );
+      const { address } = response.data;
 
-        const response = await axios.get(`${API_URL}/api/users/me`, {
-            headers: { Authorization: `Bearer ${token}` },
-        });
+      return {
+        latitude,
+        longitude,
+        city: address.city || "unknown",
+        country: address.country || "unknown",
+      };
+    } catch (err) {
+      console.error("Error getting location:", err);
+      return { latitude: null, longitude: null, city: "unknown", country: "unknown" };
+    }
+  };
 
-        if (response.data.success) {
-            setUser(response.data.data);
-            await fetchLinkedAccounts(token);
-        } else {
-            setUser(null);
-            localStorage.removeItem("token");
-        }
-        } catch (err) {
-            const error = err as AxiosError;
-            console.error("Error checking auth:", error);
-            setUser(null);
-            localStorage.removeItem("token");
-            if (error.response?.status === 401) {
-                showAlert(
-                "Your account no longer exists or the session is invalid. Please register or log in.",
-                "error"
-                );
-            } else {
-                showAlert("An error occurred while checking authentication.", "error");
-            }
-        } finally {
-            setIsLoading(false);
-        }
-    }, [fetchLinkedAccounts]);
+  const fetchLinkedAccounts = useCallback(async (token: string) => {
+    try {
+      const response = await axios.get(`${API_URL}/api/auth/linked-accounts`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.data.success) {
+        setLinkedAccounts(response.data.data);
+      } else {
+        showAlert(response.data.message || "Failed to fetch linked accounts", "error");
+      }
+    } catch (err) {
+      console.error("Error fetching linked accounts:", err);
+      showAlert("Failed to fetch linked accounts", "error");
+    }
+  }, []);
 
+  const checkAuth = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setUser(null);
+        return;
+      }
 
-    const login = async (data: LoginData): Promise<boolean> => {
+      const response = await axios.get(`${API_URL}/api/users/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.data.success) {
+        setUser(response.data.data);
+        await fetchLinkedAccounts(token);
+      } else {
+        setUser(null);
+        localStorage.removeItem("token");
+        showAlert(response.data.message || "Session invalid", "error");
+      }
+    } catch (err) {
+      const error = err as AxiosError<ApiErrorResponse>;
+      setUser(null);
+      localStorage.removeItem("token");
+      showAlert(
+        error.response?.data?.message || "An error occurred while checking authentication",
+        "error"
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, [fetchLinkedAccounts]);
+
+  const login = async (data: LoginData): Promise<boolean> => {
     setIsLoading(true);
     try {
       const location = await getUserLocation();
-      console.log("Location sent to backend for login:", location);
-
       const response = await axios.post(`${API_URL}/api/auth/login`, {
         ...data,
         location,
       });
 
-      const { success, data: responseData } = response.data;
-
-      if (success) {
-        localStorage.setItem("token", responseData.token);
+      if (response.data.success) {
+        localStorage.setItem("token", response.data.data.token);
         setUser({
-          _id: responseData._id,
-          email: responseData.email,
-          username: responseData.username,
-          isVerified: responseData.isVerified,
+          _id: response.data.data._id,
+          email: response.data.data.email,
+          username: response.data.data.username,
+          isVerified: response.data.data.isVerified,
         });
-        setLinkedAccounts(responseData.activeSessions || []);
+        setLinkedAccounts(response.data.data.activeSessions || []);
         setError(null);
-        showAlert("Login successful!", "success");
-        await fetchLinkedAccounts(responseData.token);
-        router.replace("/home"); // Redirect to home
+        showAlert(response.data.message || "Login successful!", "success");
+        await fetchLinkedAccounts(response.data.data.token);
         return true;
       } else {
-        throw new Error("Login failed");
+        throw new Error(response.data.message || "Login failed");
       }
     } catch (err: unknown) {
-        const error = err as AxiosError<ApiErrorResponse>;
-        const errorMsg = error.response?.data?.message || error.message || "Login failed";
-        setError(errorMsg);
-        showAlert(errorMsg, "error");
-        return false;
+      const error = err as AxiosError<ApiErrorResponse>;
+      const errorMsg = error.response?.data?.message || "An error occurred during login";
+      setError(errorMsg);
+      showAlert(errorMsg, "error");
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -224,37 +209,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     try {
       const location = await getUserLocation();
-      console.log("Location sent to backend:", location);
-
       const response = await axios.post(`${API_URL}/api/auth/register`, {
         ...data,
         location,
       });
 
-      const { success, data: responseData } = response.data;
-
-      if (success) {
-        console.log("Registration successful, token:", responseData.token);
-        localStorage.setItem("token", responseData.token);
+      if (response.data.success) {
+        localStorage.setItem("token", response.data.data.token);
         setUser({
-          _id: responseData._id,
-          email: responseData.email,
-          username: responseData.username,
+          _id: response.data.data._id,
+          email: response.data.data.email,
+          username: response.data.data.username,
           isVerified: false,
         });
         setError(null);
-        showAlert("Registration successful! Please verify your email.", "success");
-        router.push("/verify"); // Redirect to verification page
+        showAlert(response.data.message || "Registration successful! Please verify your email.", "success");
         return true;
       } else {
-        throw new Error("Registration failed");
+        throw new Error(response.data.message || "Registration failed");
       }
     } catch (err: unknown) {
-        const error = err as AxiosError<ApiErrorResponse>;
-        const errorMsg = error.response?.data?.message || error.message || "Login failed";
-        setError(errorMsg);
-        showAlert(errorMsg, "error");
-        return false;
+      const error = err as AxiosError<ApiErrorResponse>;
+      const errorMsg = error.response?.data?.message || "An error occurred during registration";
+      setError(errorMsg);
+      showAlert(errorMsg, "error");
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -263,160 +242,212 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const verifyUser = async (code: string): Promise<boolean> => {
     setIsLoading(true);
     try {
-      console.log("Verifying OTP:", code);
       const response = await axios.post(`${API_URL}/api/auth/verify`, { code });
-      console.log("Verification response:", response.data);
 
       if (response.data.success) {
-            // Ensure user exists and email is defined
-            if (user && user.email) {
-                setUser({ ...user, isVerified: true });
-                showAlert("Account verified successfully!", "success");
-                router.replace("/home");
-                return true;
-            }
-            throw new Error("User not found");
+        if (user && user.email) {
+          setUser({ ...user, isVerified: true });
+          showAlert(response.data.message || "Account verified successfully!", "success");
+          localStorage.removeItem("pendingVerificationEmail");
+          return true;
         }
-        return false;
-
+        throw new Error("User not found");
+      }
+      throw new Error(response.data.message || "Verification failed");
     } catch (err: unknown) {
-        const error = err as AxiosError<ApiErrorResponse>;
-        const errorMsg = error.response?.data?.message || "Verification failed";
-        console.error("Verification error:", error);
-        setError(errorMsg);
-        showAlert(errorMsg, "error");
-        return false;
+      const error = err as AxiosError<ApiErrorResponse>;
+      const errorMsg = error.response?.data?.message || "Verification failed";
+      setError(errorMsg);
+      showAlert(errorMsg, "error");
+      return false;
     } finally {
       setIsLoading(false);
     }
   };
 
-    const resendVerificationCode = async (data: { email: string }): Promise<boolean> => {
-        setIsLoading(true);
-        try {
-        console.log("Resending OTP for email:", data.email);
-        const response = await axios.post(`${API_URL}/api/auth/resend-verification`, data);
-        console.log("Resend response:", response.data);
+  const resendVerificationCode = async (data: { email: string }): Promise<boolean> => {
+    setIsLoading(true);
+    try {
+      const response = await axios.post(`${API_URL}/api/auth/resend-verification`, data);
 
-        if (response.data.success) {
-            setError(null);
-            showAlert("New OTP sent to your email", "success");
-            return true;
-        }
-        return false;
-        } catch (err: unknown) {
-            const error = err as AxiosError<ApiErrorResponse>;
-            const errorMsg = error.response?.data?.message || "Failed to resend OTP";
-            console.error("Resend error:", error);
-            setError(errorMsg);
-            showAlert(errorMsg, "error");
-        return false;
-        } finally {
-        setIsLoading(false);
-        }
-    };
+      if (response.data.success) {
+        setError(null);
+        showAlert(response.data.message || "New verification code sent to your email", "success");
+        return true;
+      }
+      throw new Error(response.data.message || "Failed to resend verification code");
+    } catch (err: unknown) {
+      const error = err as AxiosError<ApiErrorResponse>;
+      const errorMsg = error.response?.data?.message || "Failed to resend verification code";
+      setError(errorMsg);
+      showAlert(errorMsg, "error");
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    const linkAccount = async (data: LoginData): Promise<boolean> => {
-        setIsLoading(true);
-        try {
-            const token = localStorage.getItem("token");
-            if (!token) {
-                throw new Error("No token found");
-            }
+  const linkAccount = async (data: LoginData): Promise<boolean> => {
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No token found");
+      }
 
-            const response = await axios.post(
-                `${API_URL}/api/auth/link-account`,
-                data,
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
+      const response = await axios.post(`${API_URL}/api/auth/link-account`, data, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-            const { success } = response.data;
+      if (response.data.success) {
+        await fetchLinkedAccounts(token);
+        showAlert(response.data.message || "Account linked successfully!", "success");
+        return true;
+      }
+      throw new Error(response.data.message || "Failed to link account");
+    } catch (err: unknown) {
+      const error = err as AxiosError<ApiErrorResponse>;
+      const errorMsg = error.response?.data?.message || "Failed to link account";
+      setError(errorMsg);
+      showAlert(errorMsg, "error");
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-            if (success) {
-                await fetchLinkedAccounts(token);
-                showAlert("Account linked successfully!", "success");
-                return true;
-            }
-            throw new Error("Failed to link account");
-        } catch (err: unknown) {
-            const error = err as AxiosError<ApiErrorResponse>;
-            const errorMsg = error.response?.data?.message || "Failed to link account";
-            setError(errorMsg);
-            showAlert(errorMsg, "error");
-            return false;
-        } finally {
-            setIsLoading(false);
-        }
-    };
+  const switchAccount = async (accountId: string): Promise<boolean> => {
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No token found");
+      }
 
-     const switchAccount = async (accountId: string): Promise<boolean> => {
-        setIsLoading(true);
-        try {
-            const token = localStorage.getItem("token");
-            if (!token) {
-                throw new Error("No token found");
-            }
+      const response = await axios.post(
+        `${API_URL}/api/auth/switch-account`,
+        { accountId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-            const response = await axios.post(
-                `${API_URL}/api/auth/switch-account`,
-                { accountId },
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
+      if (response.data.success) {
+        localStorage.setItem("token", response.data.data.token);
+        setUser({
+          _id: response.data.data._id,
+          email: response.data.data.email,
+          username: response.data.data.username,
+        });
+        await fetchLinkedAccounts(response.data.data.token);
+        showAlert(response.data.message || "Switched account successfully!", "success");
+        return true;
+      }
+      throw new Error(response.data.message || "Failed to switch account");
+    } catch (err: unknown) {
+      const error = err as AxiosError<ApiErrorResponse>;
+      const errorMsg = error.response?.data?.message || "Failed to switch account";
+      setError(errorMsg);
+      showAlert(errorMsg, "error");
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-            const { success, data } = response.data;
+  const forgotPassword = async (email: string): Promise<boolean> => {
+    // setIsLoading(true);
+    try {
+      const response = await axios.post(`${API_URL}/api/auth/forgot-password`, { email });
 
-            if (success) {
-                localStorage.setItem("token", data.token);
-                setUser({
-                    _id: data._id,
-                    email: data.email,
-                    username: data.username,
-                });
-                await fetchLinkedAccounts(data.token);
-                showAlert("Switched account successfully!", "success");
-                router.replace("/home");
-                return true;
-            }
-            throw new Error("Failed to switch account");
-        } catch (err: unknown) {
-            const error = err as AxiosError<ApiErrorResponse>;
-            const errorMsg = error.response?.data?.message || "Failed to switch account";
-            setError(errorMsg);
-            showAlert(errorMsg, "error");
-            return false;
-        } finally {
-            setIsLoading(false);
-        }
-    };
+      if (response.data.success) {
+        setError(null);
+        showAlert(response.data.message || "Password reset OTP sent to your email", "success");
+        return true;
+      }
+      throw new Error(response.data.message || "Failed to send reset OTP");
+    } catch (err: unknown) {
+      const error = err as AxiosError<ApiErrorResponse>;
+      const errorMsg = error.response?.data?.message || "Failed to send reset OTP";
+      setError(errorMsg);
+      showAlert(errorMsg, "error");
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    const logout = async () => {
-        setIsLoading(true);
-        try {
-            const token = localStorage.getItem("token");
-            await axios.post(
-                `${API_URL}/api/auth/logout`,
-                {},
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-            localStorage.removeItem("token");
-            setUser(null);
-            setLinkedAccounts([]);
-            setError(null);
-            showAlert("Logged out successfully!", "success");
-            router.replace("/login");
-        } catch (err: unknown) {
-            const error = err as AxiosError;
-            setError("Logout failed");
-            console.error("Error logging out:", error);
-            showAlert("Logout failed", "error");
-        } finally {
-            setIsLoading(false);
-        }
-    };
+  const verifyResetOtp = async (email: string, code: string): Promise<boolean> => {
+   // setIsLoading(true);
+    try {
+      const response = await axios.post(`${API_URL}/api/auth/verify-reset-otp`, { email, code });
+
+      if (response.data.success) {
+        setError(null);
+        showAlert(response.data.message || "OTP verified successfully!", "success");
+        return true;
+      }
+      throw new Error(response.data.message || "Invalid or expired OTP");
+    } catch (err: unknown) {
+      const error = err as AxiosError<ApiErrorResponse>;
+      const errorMsg = error.response?.data?.message || "Invalid or expired OTP";
+      setError(errorMsg);
+      showAlert(errorMsg, "error");
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const logout = async () => {
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await axios.post(
+        `${API_URL}/api/auth/logout`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      localStorage.removeItem("token");
+      setUser(null);
+      setLinkedAccounts([]);
+      setError(null);
+      showAlert(response.data.message || "Logged out successfully!", "success");
+      router.replace("/login");
+    } catch (err: unknown) {
+      const error = err as AxiosError<ApiErrorResponse>;
+      const errorMsg = error.response?.data?.message || "Logout failed";
+      setError(errorMsg);
+      showAlert(errorMsg, "error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const resetPassword = async (token: string, password: string): Promise<boolean> => {
+   // setIsLoading(true);
+    try {
+      const response = await axios.put(`${API_URL}/api/auth/reset-password/${token}`, { password });
+
+      if (response.data.success) {
+        setError(null);
+        showAlert(response.data.message || "Password reset successfully!", "success");
+        return true;
+      }
+      throw new Error(response.data.message || "Failed to reset password");
+    } catch (err: unknown) {
+      const error = err as AxiosError<ApiErrorResponse>;
+      const errorMsg = error.response?.data?.message || "Failed to reset password";
+      setError(errorMsg);
+      showAlert(errorMsg, "error");
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     checkAuth();
-  }, [checkAuth])
+  }, [checkAuth]);
 
   return (
     <AuthContext.Provider
@@ -425,19 +456,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         linkedAccounts,
         isLoading,
         error,
-        alert,
         register,
         login,
         verifyUser,
         resendVerificationCode,
         logout,
         checkAuth,
-        hideAlert,
         linkAccount,
         switchAccount,
+        forgotPassword,
+        verifyResetOtp,
+        resetPassword,
       }}
     >
-        {children}
+      {children}
     </AuthContext.Provider>
-  )
-}
+  );
+};
