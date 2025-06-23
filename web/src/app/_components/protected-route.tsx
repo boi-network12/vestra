@@ -14,10 +14,15 @@ export default function ProtectedRoute({
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && !user) {
+  if (!isLoading && !user) {
+    const timeout = setTimeout(() => {
       router.push("/login");
-    }
-  }, [user, isLoading, router]);
+    }, 2000); // delay by 1 second
+
+    return () => clearTimeout(timeout); // cleanup if the component unmounts
+  }
+}, [user, isLoading, router]);
+
 
   if (!user) {
     return (
