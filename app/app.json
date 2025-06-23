@@ -1,0 +1,83 @@
+{
+  "expo": {
+    "name": "Vestra",
+    "slug": "vestra",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "resizeMode": "contain",
+    "backgroundColor": "#02001C",
+    "scheme": "vestraapp",
+    "userInterfaceStyle": "automatic",
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "jsEngine": "hermes",
+    "newArchEnabled": true,
+    "plugins": [
+      "expo-router",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#4F46E5",
+          "sounds": []
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Vestra needs your location to show nearby or personalized features."
+        }
+      ]
+    ],
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.vestra.app",
+      "buildNumber": "1.0.0",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Vestra uses the camera for profile photos and video content.",
+        "NSPhotoLibraryUsageDescription": "Vestra needs access to your photo library to upload posts.",
+        "NSMicrophoneUsageDescription": "Vestra uses your microphone for recording voice and video.",
+        "NSLocationWhenInUseUsageDescription": "Vestra uses your location to show personalized content."
+      }
+    },
+    "android": {
+      "package": "com.vestra.app",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#02001C"
+      },
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "ACCESS_FINE_LOCATION",
+        "NOTIFICATIONS"
+      ],
+      "useNextNotificationsApi": true,
+      "edgeToEdgeEnabled": true
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "extra": {
+      "apiBaseUrl": "https://your-backend-api.com"
+    },
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
