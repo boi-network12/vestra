@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email Verification - Vetsra</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f4f4f9;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 600px; margin: 40px auto;">
+    <tr>
+      <td style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <!-- Header -->
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+          <tr>
+            <td style="background-color: #1a73e8; padding: 20px; text-align: center;">
+              <h1 style="color: #ffffff; font-size: 24px; margin: 0;">Verify Your Email</h1>
+            </td>
+          </tr>
+        </table>
+        <!-- Body -->
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+          <tr>
+            <td style="padding: 40px 30px;">
+              <p style="font-size: 16px; color: #202124; margin: 0 0 20px;">Hello {{name}},</p>
+              <p style="font-size: 16px; color: #202124; margin: 0 0 20px;">
+                Thank you for joining Vestra. To complete your registration, please use the verification code below:
+              </p>
+              <div style="text-align: center; margin: 30px 0;">
+                <span style="display: inline-block; background-color: #e8f0fe; color: #1a73e8; font-size: 24px; font-weight: bold; padding: 15px 30px; border-radius: 6px; letter-spacing: 2px;">
+                  {{code}}
+                </span>
+              </div>
+              <p style="font-size: 14px; color: #5f6368; margin: 0 0 20px;">
+                This code expires in 10 minutes. If you didn’t request this, please contact our support team.
+              </p>
+              <p style="font-size: 16px; color: #202124; margin: 0;">
+                Best regards,<br>The Vestra Team
+              </p>
+            </td>
+          </tr>
+        </table>
+        <!-- Footer -->
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+          <tr>
+            <td style="background-color: #f4f4f9; padding: 20px; text-align: center; font-size: 12px; color: #5f6368;">
+              <p style="margin: 0;">&copy; {{year}} Vestra. All rights reserved.</p>
+              <p style="margin: 5px 0 0;">
+                <a href="https://vestra.com/support" style="color: #1a73e8; text-decoration: none;">Support</a> | 
+                <a href="https://vestra.com/privacy" style="color: #1a73e8; text-decoration: none;">Privacy Policy</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
