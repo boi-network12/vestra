@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
-import { Suspense } from "react";
 import { ToastContainer } from "react-toastify";
 
 const geistSans = Geist({
@@ -32,13 +31,7 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <AuthProvider>
-          <Suspense fallback={
-            <div className="w-full bg-gray-900 min-h-screen flex items-center justify-center text-white">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
-            </div>
-          }>
-            {children}
-          </Suspense>
+           {children}
           <ToastContainer />
         </AuthProvider>
       </body>

@@ -192,6 +192,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await fetchLinkedAccounts(response.data.data.token);
         return true;
       } else {
+        showAlert(response.data.message || "Login failed", "error");
         throw new Error(response.data.message || "Login failed");
       }
     } catch (err: unknown) {
@@ -204,6 +205,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(false);
     }
   };
+
 
   const register = async (data: RegisterData): Promise<boolean> => {
     setIsLoading(true);
@@ -354,7 +356,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const forgotPassword = async (email: string): Promise<boolean> => {
-    // setIsLoading(true);
+    setIsLoading(true);
     try {
       const response = await axios.post(`${API_URL}/api/auth/forgot-password`, { email });
 
@@ -376,7 +378,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const verifyResetOtp = async (email: string, code: string): Promise<boolean> => {
-   // setIsLoading(true);
+    setIsLoading(true);
     try {
       const response = await axios.post(`${API_URL}/api/auth/verify-reset-otp`, { email, code });
 
@@ -424,7 +426,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const resetPassword = async (token: string, password: string): Promise<boolean> => {
-   // setIsLoading(true);
+    setIsLoading(true);
     try {
       const response = await axios.put(`${API_URL}/api/auth/reset-password/${token}`, { password });
 

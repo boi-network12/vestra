@@ -102,3 +102,26 @@ exports.sendLoginNotifyEmail = async (email, name, city, country, device, ipAddr
     throw new Error('Email sending failed');
   }
 }
+
+// Send password change notification email
+exports.sendPasswordChangeEmail = async (email, name) => {
+  try {
+    const html = compileTemplate('passwordChange', {
+      name,
+      year: new Date().getFullYear(),
+    });
+
+    const mailOptions = {
+      from: `"Vestra" <${process.env.EMAIL_USERNAME}>`,
+      to: email,
+      subject: 'Your Vestra Password Has Been Changed',
+      html,
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`Password change notification email sent to ${email}`);
+  } catch (error) {
+    console.error(`Error sending password change notification email to ${email}:`, error);
+    throw new Error('Email sending failed');
+  }
+};

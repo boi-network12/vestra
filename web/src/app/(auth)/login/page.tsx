@@ -1,6 +1,6 @@
 "use client";
 import { useAuth } from "@/hooks/authHooks";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   isMobile,
   isTablet,
@@ -10,7 +10,6 @@ import MobileLogin from "../components/MobileLogin";
 import TabletLogin from "../components/TabletLogin";
 import BrowserLogin from "../components/BrowserLogin";
 import { useRouter } from "next/navigation";
-import { toast } from "react-toastify";
 
 
 interface FormErrors {
@@ -42,7 +41,8 @@ export default function Login() {
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleSubmit = async () => {
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
         if (!validateForm()) return;
 
         const loginData = {

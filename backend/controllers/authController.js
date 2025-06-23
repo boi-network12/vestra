@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const UserHistory = require('../models/UserHistory');
-const { sendVerificationEmail, sendWelcomeEmail, sendLoginNotifyEmail } = require('../utils/email');
+const { sendVerificationEmail, sendWelcomeEmail, sendLoginNotifyEmail, sendPasswordChangeEmail } = require('../utils/email');
 const mongoose = require('mongoose');
 const { processLocation } = require('../helper/locationHelper');
 
@@ -466,6 +466,13 @@ exports.resetPassword = async (req, res) => {
     user.passwordResetOtp = undefined;
     user.passwordResetOtpExpires = undefined;
     await user.save();
+
+    // Send password change notification email
+    try {
+      await sendPasswordChangeEmail(user.email, user.profile.firstName);
+    } catch (err) {
+      console.error('Failed to send password change notification email:', err);
+    }
 
     res.json({
       success: true,

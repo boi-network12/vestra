@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/hooks/authHooks";
 import { useRouter } from "next/navigation";
-import { toast } from "react-toastify";
 
 type Step = "request" | "reset";
 
@@ -84,7 +83,7 @@ export default function ForgetPassword() {
         console.log("Failed to send OTP. Please try again.");
       }
     } catch (error) {
-      console.error("An error occurred while sending OTP.");
+      console.error("An error occurred while sending OTP.", error);
     }
   };
 
@@ -104,7 +103,7 @@ export default function ForgetPassword() {
         console.error("Invalid or expired OTP.");
       }
     } catch (error) {
-      console.error("An error occurred while verifying OTP.");
+      console.error("An error occurred while verifying OTP.", error);
     }
   };
 
@@ -131,7 +130,7 @@ export default function ForgetPassword() {
         console.error("Failed to reset password.");
       }
     } catch (error) {
-      console.error("An error occurred while resetting password.");
+      console.error("An error occurred while resetting password.", error);
     }
   };
 
@@ -153,7 +152,7 @@ export default function ForgetPassword() {
               className="mt-1 p-2 w-full border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
               aria-required="true"
-              disabled={otpSent}
+              disabled={otpSent || isLoading}
             />
           </div>
           <div>
@@ -172,7 +171,7 @@ export default function ForgetPassword() {
                 maxLength={6}
                 required
                 aria-required="true"
-                disabled={!otpSent}
+                disabled={!otpSent || isLoading}
               />
               <button
                 type="button"
@@ -240,6 +239,7 @@ export default function ForgetPassword() {
               required
               aria-required="true"
               minLength={8}
+              disabled={isLoading}
             />
           </div>
           <div>
@@ -256,6 +256,7 @@ export default function ForgetPassword() {
               required
               aria-required="true"
               minLength={8}
+              disabled={isLoading}
             />
           </div>
           <button

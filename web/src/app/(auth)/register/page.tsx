@@ -55,11 +55,11 @@ export default function Register() {
         await localStorage.setItem('pendingVerificationEmail', form.email);
         toast.info('Please verify your email to complete registration.');
         setTimeout(() => {
-              console.log('Navigating to verify with email:', form.email); // Debug log
-              router.push(`/verify?email=${encodeURIComponent(form.email)}`);
-          }, 1000)
+            console.log('Navigating to verify with email:', form.email); // Debug log
+            router.push(`/verify?email=${encodeURIComponent(form.email)}`);
+        }, 1000)
       } else {
-        toast.error('Registration failed. Please try again.');
+        console.error('Registration failed. Please try again.');
       }
     }
   };

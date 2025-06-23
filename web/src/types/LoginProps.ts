@@ -15,7 +15,7 @@ export interface LoginProps {
     email?: string;
     password?: string;
   };
-  handleSubmit: () => void;
+  handleSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   isLoading: boolean;
   error: unknown;
 }

@@ -34,10 +34,7 @@ export default function MobileLogin({
 
       {/* Login Form */}
       <form
-        onSubmit={(e) => {
-          e.preventDefault()
-          handleSubmit()
-        }}
+        onSubmit={handleSubmit}
         className='w-full mt-8 flex flex-col gap-4'
       >
         {/* Email */}
