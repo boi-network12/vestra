@@ -7,7 +7,6 @@ const connectDb = async () => {
     const conn = await mongoose.connect(process.env.MONGO_URI, {
       // Remove deprecated options
     });
-    console.log('MONGO_URI:', process.env.MONGO_URI);
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
     return conn; // Return the connection object
   } catch (err) {
