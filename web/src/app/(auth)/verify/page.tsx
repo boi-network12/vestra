@@ -1,6 +1,6 @@
 "use client";
 import { useAuth } from "@/hooks/authHooks";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 
@@ -12,26 +12,30 @@ export default function Verify() {
   const { isLoading, verifyUser, resendVerificationCode, user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const [code, setCode] = useState("");
   const [errors, setErrors] = useState<FormErrors>({});
   const [email, setEmail] = useState("");
   const [resendCooldown, setResendCooldown] = useState(0);
 
   useEffect(() => {
-    const emailFromParams = searchParams.get("email");
-    const emailFromStorage = localStorage.getItem("pendingVerificationEmail");
-    if (emailFromParams) {
-      setEmail(decodeURIComponent(emailFromParams));
-    } else if (emailFromStorage) {
-      setEmail(emailFromStorage);
-    }
+  const handler = setTimeout(() => {
+      const emailFromParams = searchParams.get("email");
+      const emailFromStorage = localStorage.getItem("pendingVerificationEmail");
+      if (emailFromParams) {
+        setEmail(decodeURIComponent(emailFromParams));
+      } else if (emailFromStorage) {
+        setEmail(emailFromStorage);
+      }
+    }, 100);
+    return () => clearTimeout(handler);
   }, [searchParams]);
 
   useEffect(() => {
-    if (user && user.isVerified === true) {
-      router.replace("/home");
-    }
-  }, [user, router]);
+  if (user && user.isVerified === true && pathname !== "/home") {
+    router.replace("/home");
+  }
+}, [user, pathname, router]);
 
 
   useEffect(() => {

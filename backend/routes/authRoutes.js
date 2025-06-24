@@ -16,7 +16,7 @@ const {
   deleteUser,
   recoverAccount,
 } = require('../controllers/authController');
-const { protect } = require('../middleware/authMiddleware');
+const { protect, restrictTo } = require('../middleware/authMiddleware');
 
 router.post('/register', register);
 router.post('/login', login);
@@ -30,7 +30,7 @@ router.post('/verify', verifyUser);
 router.use(protect); 
 // Protected routes (require authentication)
 router.get('/linked-accounts', getLinkedAccounts);
-router.post('/link-account', linkAccount);
+router.post('/link-account', restrictTo('user', 'admin'), linkAccount);
 router.post('/switch-account', switchAccount);
 router.post('/logout', logout);
 router.delete('/delete', deleteUser);

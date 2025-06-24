@@ -6,13 +6,13 @@ const {
   updateProfilePicture,
   getUserHistory,
 } = require('../controllers/userController');
-const { protect } = require('../middleware/authMiddleware');
+const { protect, restrictTo } = require('../middleware/authMiddleware');
 
 router.use(protect); // Protect all routes below
 
 router.get('/me', getUserDetails);
 router.put('/me', updateUserDetails);
 router.put('/me/avatar', updateProfilePicture);
-router.get('/history/:userId', getUserHistory); // Admin only
+router.get('/history/:userId', restrictTo('admin'), getUserHistory); // Admin only
 
 module.exports = router;

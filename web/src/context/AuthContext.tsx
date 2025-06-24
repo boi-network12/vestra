@@ -135,7 +135,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const checkAuth = useCallback(async () => {
+  const checkAuth = useCallback(
+  async () => {
+    if (user) return; // Skip if user is already set
     setIsLoading(true);
     try {
       const token = localStorage.getItem("token");
@@ -143,11 +145,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(null);
         return;
       }
-
       const response = await axios.get(`${API_URL}/api/users/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       if (response.data.success) {
         setUser(response.data.data);
         await fetchLinkedAccounts(token);
@@ -167,7 +167,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [fetchLinkedAccounts]);
+  },
+  [user, fetchLinkedAccounts]
+);
 
   const login = async (data: LoginData): Promise<boolean> => {
     setIsLoading(true);

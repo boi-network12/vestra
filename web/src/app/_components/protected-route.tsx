@@ -45,3 +45,5 @@ export default function ProtectedRoute({
 
   return <>{children}</>;
 }
+
+// src/app/_components/protected-route.tsx

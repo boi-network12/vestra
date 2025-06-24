@@ -72,7 +72,7 @@ export default function Register() {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
+    <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-lg md:shadow-md">
       <h2 className="text-2xl font-bold mb-6 text-center">Register</h2>
       {error && <p className="text-red-500 mb-4">{error}</p>}
       <form onSubmit={handleSubmit}>
@@ -84,6 +84,7 @@ export default function Register() {
             type="text"
             id="firstName"
             name="firstName"
+            placeholder='first name'
             value={form.firstName}
             onChange={handleChange}
             className={`mt-1 block w-full p-2 border ${
@@ -102,6 +103,7 @@ export default function Register() {
             type="text"
             id="lastName"
             name="lastName"
+            placeholder='last name'
             value={form.lastName}
             onChange={handleChange}
             className={`mt-1 block w-full p-2 border ${
@@ -120,6 +122,7 @@ export default function Register() {
             type="email"
             id="email"
             name="email"
+            placeholder='info@example.com'
             value={form.email}
             onChange={handleChange}
             className={`mt-1 block w-full p-2 border ${
@@ -139,6 +142,7 @@ export default function Register() {
               type={showPassword ? 'text' : 'password'}
               id="password"
               name="password"
+              placeholder='********'
               value={form.password}
               onChange={handleChange}
               className={`mt-1 block w-full p-2 border ${

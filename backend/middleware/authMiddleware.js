@@ -42,11 +42,17 @@ exports.protect = async (req, res, next) => {
     }
 
     // Ensure linkedAccounts is initialized
-    if (!currentUser.linkedAccounts) {
+    if (!Array.isArray(currentUser.linkedAccounts)) {
       currentUser.linkedAccounts = [];
       await currentUser.save({ validateBeforeSave: false });
       // Reload user to ensure consistency
       currentUser = await User.findById(decoded.id).select('+sessions');
+      if (!currentUser) {
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to reload user after initialization',
+        });
+      }
     }
 
     // Check if session is valid
@@ -105,6 +111,12 @@ exports.protect = async (req, res, next) => {
 // Role-based authorization
 exports.restrictTo = (...roles) => {
   return (req, res, next) => {
+    if (!Array.isArray(roles)) {
+      return res.status(500).json({
+        success: false,
+        message: 'Server configuration error: Invalid roles specified',
+      });
+    }
     if (!req.user || !req.user.role || !roles.includes(req.user.role)) {
       return res.status(403).json({
         success: false,

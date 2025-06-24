@@ -14,9 +14,9 @@ export default function Splash() {
     if (!isLoading) {
       if (!user) {
         router.replace("/login");
-      } else if (user && !user.isVerified) {
+      } else if (user && user.isVerified === false) {
         router.replace("/verify");
-      } else if (user && user.isVerified) {
+      } else if (user && user.isVerified === true) {
         router.replace("/home");
       }
     }
@@ -40,3 +40,4 @@ export default function Splash() {
 
   return null; // or a fallback component
 }
+// src/app/page.tsx
