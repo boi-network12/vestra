@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import PublicRoute from "../_components/public-route";
 
 
@@ -8,7 +9,9 @@ export default function AuthLayout({
 }) {
     return (
         <PublicRoute>
-            {children}
+            <Suspense fallback={<div>Loading...</div>}>
+               {children}
+            </Suspense>
         </PublicRoute>
     )
 }
