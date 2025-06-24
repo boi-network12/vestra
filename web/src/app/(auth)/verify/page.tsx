@@ -129,7 +129,7 @@ export default function Verify() {
         </form>
         <div className="mt-4 text-center">
           <p className="text-sm text-gray-600">
-            Didn't receive the code?{" "}
+            Didn&apos;t receive the code?{" "}
             <button
               onClick={handleResend}
               className={`text-blue-500 hover:underline ${
