@@ -7,6 +7,8 @@ export interface User {
   passwordChangedAt?: Date;
   passwordResetToken?: string;
   passwordResetExpires?: Date;
+  passwordResetOtp?: string; // Added from schema
+  passwordResetOtpExpires?: Date; // Added from schema
   profile?: {
     firstName?: string;
     lastName?: string;
@@ -20,6 +22,8 @@ export interface User {
     };
     culturalBackground?: 'African' | 'African-American' | 'Caribbean' | 'Other' | 'Prefer not to say';
     interests?: string[];
+    dateOfBirth?: Date; // Added from schema
+    gender?: 'Male' | 'Female' | 'Other' | 'Prefer not to say'; // Added from schema
   };
   subscription?: {
     plan: 'Basic' | 'Premium' | 'Elite';
@@ -63,6 +67,8 @@ export interface User {
     mentions: boolean;
     follows: boolean;
   };
+  isDelete?: boolean; // Added from schema
+  deleteAt?: Date; // Added from schema
   createdAt?: Date;
   updatedAt?: Date;
 }

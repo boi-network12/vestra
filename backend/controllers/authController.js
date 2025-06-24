@@ -562,9 +562,12 @@ exports.getLinkedAccounts = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
+    // Ensure linkedAccounts is an array
+    const linkedAccounts = Array.isArray(user.linkedAccounts) ? user.linkedAccounts : [];
+
     res.json({
       success: true,
-      data: user.linkedAccounts,
+      data: linkedAccounts,
     });
   } catch (err) {
     console.error('Get linked accounts error:', err);

@@ -1,4 +1,6 @@
 import { NavItem } from "@/types/navItem";
+import { BiBot } from "react-icons/bi";
+import { FaRobot } from "react-icons/fa";
 import {
   IoHomeOutline,
   IoHome,
@@ -18,6 +20,7 @@ export const mobileNavItems: NavItem[] = [
   { name: "Profile", href: "/profile", icon: IoPersonOutline, activeIcon: IoPerson },
   { name: "Messages", href: "/messages", icon: IoChatbubbleOutline, activeIcon: IoChatbubble },
   { name: "Explore", href: "/explore", icon: IoSearchOutline, activeIcon: IoSearch },
+  { name: "Bot", href: "/bot", icon: BiBot, activeIcon: FaRobot }, // Extra item for mobile nav
 ];
 
 // Navigation items for LeftSidebar
@@ -26,5 +29,6 @@ export const sidebarNavItems: NavItem[] = [
   { name: "Profile", href: "/profile", icon: IoPersonOutline, activeIcon: IoPerson },
   { name: "Messages", href: "/messages", icon: IoChatbubbleOutline, activeIcon: IoChatbubble },
   { name: "Explore", href: "/explore", icon: IoSearchOutline, activeIcon: IoSearch },
-  { name: "Settings", href: "/settings", icon: IoSettingsOutline, activeIcon: IoSettings }, // Extra item for sidebar
+  { name: "Settings", href: "/settings", icon: IoSettingsOutline, activeIcon: IoSettings }, 
+  { name: "Bot", href: "/bot", icon: BiBot, activeIcon: FaRobot },
 ];

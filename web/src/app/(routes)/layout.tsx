@@ -8,6 +8,7 @@ import MainContent from "../_components/MainContainer";
 import RightSidebar from "../_components/RightSidebar";
 import MobileNav from "../_components/MobileNav";
 import { mobileNavItems } from "@/constant/navItems";
+import { useAuth } from "@/hooks/authHooks";
 
 const trends: Trend[] = [
   { topic: "Tech", posts: "1.2M" },
@@ -17,6 +18,7 @@ const trends: Trend[] = [
 
 export default function ProtectedLayout({ children }: { children: ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { user, logout } = useAuth();
 
   const toggleSidebar = () => {
     setIsSidebarOpen((prev) => !prev);
@@ -36,6 +38,8 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
         <LeftSidebar
           isSidebarOpen={isSidebarOpen}
           toggleSidebar={toggleSidebar}
+          user={user}
+          logout={logout}
         />
         <MainContent>{children}</MainContent>
         <RightSidebar trends={trends} />

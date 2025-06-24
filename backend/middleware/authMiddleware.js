@@ -14,7 +14,7 @@ exports.protect = async (req, res, next) => {
 
     // Get token from header or cookies
     let token;
-    const authHeader = req.headers.authorization || req.headers.Authorization; 
+    const authHeader = req.headers.authorization || req.headers.Authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       token = authHeader.split(' ')[1];
     } else if (req.cookies?.accessToken) {
@@ -27,7 +27,6 @@ exports.protect = async (req, res, next) => {
         message: 'No authentication token provided',
       });
     }
-
 
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -79,7 +78,7 @@ exports.protect = async (req, res, next) => {
     next();
   } catch (err) {
     console.error('Authentication Error:', {
-      message: err.message,
+      message: err.message || 'Unknown error',
       stack: err.stack,
       path: req.path,
       method: req.method,
@@ -92,7 +91,7 @@ exports.protect = async (req, res, next) => {
       message = 'Token expired. Please log in again';
     } else if (err.name === 'JsonWebTokenError') {
       message = 'Invalid token. Please log in again';
-    } else if (err.message.includes('Rate limit')) {
+    } else if (err.message && err.message.includes('Rate limit')) {
       message = 'Too many authentication attempts. Try again later';
       status = 429;
     } else {
