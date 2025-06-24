@@ -16,15 +16,26 @@ const generateToken = (id) => {
 // Remove the standalone mongoose.connect in migrateUsers
 async function migrateUsers() {
   try {
-    // Ensure connection is established
     await connectDb();
     const result = await User.updateMany(
-      { linkedAccounts: { $exists: false } },
-      { $set: { linkedAccounts: [] } }
+      {
+        $or: [
+          { linkedAccounts: { $exists: false } },
+          { 'profile.dateOfBirth': { $exists: false } },
+          { 'profile.gender': { $exists: false } },
+        ],
+      },
+      {
+        $set: {
+          linkedAccounts: [],
+          'profile.dateOfBirth': null,
+          'profile.gender': 'Prefer not to say',
+        },
+      }
     );
     console.log(`Updated ${result.modifiedCount} users`);
   } catch (err) {
-    console.error("Migration error:", err);
+    console.error('Migration error:', err);
   }
 }
 
@@ -36,8 +47,7 @@ if (process.env.RUN_MIGRATION === "true") {
   });
 }
 
-migrateUsers();
-
+// Migrate verificationAttempts field for existing users
 async function migrateVerificationAttempts() {
   try {
     await connectDb();
@@ -50,6 +60,7 @@ async function migrateVerificationAttempts() {
     console.error("Migration error:", err);
   }
 }
+
 if (process.env.RUN_MIGRATION === "true") {
   migrateVerificationAttempts().finally(() => console.log("Migration completed"));
 }
@@ -680,3 +691,122 @@ exports.logout = async (req, res) => {
   }
 };
 
+// Delete User (Soft Delete)
+exports.deleteUser = async (req, res) => {
+  try {
+    const { password } = req.body;
+    const userId = req.user._id;
+
+    // Find user
+    const user = await User.findById(userId).select('+password');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Require password for deletion
+    if (!password) {
+      return res.status(400).json({ success: false, message: 'Password is required to delete account' });
+    }
+    if (!(await user.comparePassword(password))) {
+      return res.status(401).json({ success: false, message: 'Incorrect password' });
+    }
+
+    // Log deletion in UserHistory
+    await UserHistory.create({
+      userId: user._id,
+      field: 'account',
+      oldValue: 'active',
+      newValue: 'deleted',
+      ipAddress: req.ip,
+      device: req.headers['user-agent'] || 'unknown',
+    });
+
+    // Mark user as deleted
+    user.isDeleted = true;
+    user.deletedAt = new Date();
+    user.sessions = []; // Clear all sessions
+    await user.save({ validateBeforeSave: false });
+
+    // Remove user from others' social connections
+    await User.updateMany(
+      { $or: [{ followers: userId }, { following: userId }, { blockedUsers: userId }] },
+      { $pull: { followers: userId, following: userId, blockedUsers: userId } }
+    );
+
+    // Remove from linked accounts
+    await User.updateMany(
+      { linkedAccounts: userId },
+      { $pull: { linkedAccounts: userId } }
+    );
+
+    res.json({ success: true, message: 'User account deleted successfully' });
+  } catch (err) {
+    console.error('Delete user error:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// Recover User Account
+exports.recoverAccount = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: 'Email and password are required' });
+    }
+
+    const user = await User.findOne({ email, isDeleted: true }).select('+password');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'No deleted account found with this email' });
+    }
+
+    if (!(await user.comparePassword(password))) {
+      return res.status(401).json({ success: false, message: 'Incorrect password' });
+    }
+
+    // Check if recovery is within 30 days
+    const deletionDate = new Date(user.deletedAt);
+    const now = new Date();
+    const daysSinceDeletion = (now - deletionDate) / (1000 * 60 * 60 * 24);
+    if (daysSinceDeletion > 30) {
+      return res.status(400).json({ success: false, message: 'Account recovery period has expired' });
+    }
+
+    // Restore account
+    user.isDeleted = false;
+    user.deletedAt = undefined;
+    const token = generateToken(user._id);
+    user.sessions = [{
+      token,
+      device: req.headers['user-agent'] || 'unknown',
+      ipAddress: req.ip,
+      lastActive: new Date(),
+      active: true,
+    }];
+    await user.save({ validateBeforeSave: false });
+
+    // Log recovery in UserHistory
+    await UserHistory.create({
+      userId: user._id,
+      field: 'account',
+      oldValue: 'deleted',
+      newValue: 'active',
+      ipAddress: req.ip,
+      device: req.headers['user-agent'] || 'unknown',
+    });
+
+    res.json({
+      success: true,
+      message: 'Account recovered successfully',
+      data: {
+        _id: user._id,
+        username: user.username,
+        email: user.email,
+        token,
+      },
+    });
+  } catch (err) {
+    console.error('Recover account error:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};

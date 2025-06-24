@@ -30,6 +30,7 @@ export default function Splash() {
             src={LoadImg}
             alt="Loading"
             className="h-30 w-30 object-contain"
+            priority
           />
           <BiLoader className="animate-spin text-white/60 text-3xl" />
         </div>

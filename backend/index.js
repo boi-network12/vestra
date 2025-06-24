@@ -8,9 +8,10 @@ const morgan = require("morgan");
 const rateLimit = require("express-rate-limit");
 const { createServer } = require("http");
 const initializeSocket = require("./socket/socket");
-// routes
+const mongoose = require('mongoose'); 
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
+const { schedulePermanentDelete } = require("./jobs/permanentDelete");
 
 dotenv.config();
 
@@ -80,9 +81,14 @@ const PORT = process.env.PORT || 5000;
 const startServer = async () => {
   try {
     await connectDb(); // Wait for MongoDB connection
+    if (process.env.ENABLE_PERMANENT_DELETE === 'true') {
+      schedulePermanentDelete(); // Schedule cron job for permanent deletion
+    } else {
+      console.log('Permanent deletion cron job is disabled.');
+    }
     httpServer.listen(PORT, () => {
       console.log(
-        `🚀 Server running in ${process.env.NODE_ENV || "development"} mode on port ${PORT}`
+        `🚗 Server running in ${process.env.NODE_ENV || "development"} mode on port ${PORT}`
       );
     });
   } catch (err) {

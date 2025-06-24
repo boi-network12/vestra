@@ -2,8 +2,11 @@
 "use client";
 
 import { useAuth } from "@/hooks/authHooks";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import LoadImg from "../../assets/img/loadIcon.png";
+import { BiLoader } from "react-icons/bi";
 
 export default function ProtectedRoute({
   children,
@@ -26,8 +29,16 @@ export default function ProtectedRoute({
 
   if (!user) {
     return (
-      <div className="w-full bg-gray-900 min-h-screen flex items-center justify-center text-white">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
+      <div className="flex items-center justify-center min-h-screen bg-[#030120]">
+        <div className="flex flex-col items-center justify-center space-y-4">
+          <Image
+            src={LoadImg}
+            alt="Loading"
+            className="h-30 w-30 object-contain"
+            priority
+          />
+          <BiLoader className="animate-spin text-white/60 text-3xl" />
+        </div>
       </div>
     );
   }

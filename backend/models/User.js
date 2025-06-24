@@ -53,6 +53,15 @@ const userSchema = new mongoose.Schema({
       default: 'Prefer not to say',
     },
     interests: [{ type: String, trim: true }],
+    dateOfBirth: {
+      type: Date,
+      default: null,
+    },
+    gender: {
+      type: String,
+      enum: ['Male', 'Female', 'Other', 'Prefer not to say'],
+      default: 'Prefer not to say', 
+    },
   },
   subscription: {
     plan: {
@@ -114,6 +123,13 @@ const userSchema = new mongoose.Schema({
     mentions: { type: Boolean, default: true },
     follows: { type: Boolean, default: true },
   },
+  isDelete: {
+    type: Boolean,
+    default: false,
+  },
+  deleteAt: {
+    type: Date,
+  },
   createdAt: {
     type: Date,
     default: Date.now,
@@ -146,10 +162,22 @@ userSchema.add({
   passwordResetOtpExpires: Date,
 });
 
+// Exclude deleted users from queries
+userSchema.pre('/^find/', function (next) {
+  this.find({ isDelete: { $ne: true } });
+  next();
+})
+
 // Password hashing
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
   this.password = await bcrypt.hash(this.password, 12);
+  next();
+});
+
+// Exclude deleted users in populate queries
+userSchema.pre('findOneAndUpdate', function (next) {
+  this.find({ isDeleted: { $ne: true } });
   next();
 });
 

@@ -27,6 +27,22 @@ exports.updateUserDetails = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
+    // Check username uniqueness
+    if (username && username !== user.username) {
+      const usernameExists = await User.findOne({ username, isDeleted: { $ne: true } });
+      if (usernameExists) {
+        return res.status(400).json({ success: false, message: 'Username already taken' });
+      }
+    }
+
+    // Check email uniqueness
+    if (email && email !== user.email) {
+      const emailExists = await User.findOne({ email, isDeleted: { $ne: true } });
+      if (emailExists) {
+        return res.status(400).json({ success: false, message: 'Email already taken' });
+      }
+    }
+
     // Track changes for history
     const changes = [];
     const fieldsToCheck = {

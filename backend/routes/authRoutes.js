@@ -13,6 +13,8 @@ const {
   switchAccount,
   logout,
   verifyResetOtp,
+  deleteUser,
+  recoverAccount,
 } = require('../controllers/authController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -31,5 +33,7 @@ router.get('/linked-accounts', getLinkedAccounts);
 router.post('/link-account', linkAccount);
 router.post('/switch-account', switchAccount);
 router.post('/logout', logout);
+router.delete('/delete', deleteUser);
+router.post('/recover-account', recoverAccount);
 
 module.exports = router;
