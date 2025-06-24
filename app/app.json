@@ -37,7 +37,8 @@
       ]
     ],
     "updates": {
-      "fallbackToCacheTimeout": 0
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/d2f74d10-845a-473d-b2b9-d4f0363e3f20"
     },
     "ios": {
       "supportsTablet": true,
@@ -65,6 +66,14 @@
         "ACCESS_FINE_LOCATION",
         "NOTIFICATIONS",
         "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "CAMERA",
+        "RECORD_AUDIO",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "ACCESS_FINE_LOCATION",
+        "NOTIFICATIONS",
+        "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
       ],
       "useNextNotificationsApi": true,
@@ -76,10 +85,18 @@
       "favicon": "./assets/images/favicon.png"
     },
     "extra": {
-      "apiBaseUrl": "https://your-backend-api.com"
+      "apiBaseUrl": "https://your-backend-api.com",
+      "router": {},
+      "eas": {
+        "projectId": "d2f74d10-845a-473d-b2b9-d4f0363e3f20"
+      }
     },
     "experiments": {
       "typedRoutes": true
+    },
+    "owner": "kamdi_02",
+    "runtimeVersion": {
+      "policy": "appVersion"
     }
   }
 }
