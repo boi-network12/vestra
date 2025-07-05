@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import LoadImg from "../assets/img/loadIcon.png";
 import { BiLoader } from "react-icons/bi"; 
 import { useEffect } from "react";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function Splash() {
   const { isLoading, user } = useAuth();

@@ -143,6 +143,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const token = localStorage.getItem("token");
       if (!token) {
         setUser(null);
+        setLinkedAccounts([]);
         return;
       }
       const response = await axios.get(`${API_URL}/api/users/me`, {
@@ -153,6 +154,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await fetchLinkedAccounts(token);
       } else {
         setUser(null);
+        setLinkedAccounts([]);
         localStorage.removeItem("token");
         showAlert(response.data.message || "Session invalid", "error");
       }
@@ -188,10 +190,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           username: response.data.data.username,
           isVerified: response.data.data.isVerified,
         });
-        setLinkedAccounts(response.data.data.activeSessions || []);
+        setLinkedAccounts([]);
         setError(null);
         showAlert(response.data.message || "Login successful!", "success");
-        await fetchLinkedAccounts(response.data.data.token);
+        await checkAuth(); 
         return true;
       } else {
         showAlert(response.data.message || "Login failed", "error");
@@ -226,8 +228,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           username: response.data.data.username,
           isVerified: false,
         });
+        setLinkedAccounts([]);
         setError(null);
         showAlert(response.data.message || "Registration successful! Please verify your email.", "success");
+        await checkAuth();
         return true;
       } else {
         throw new Error(response.data.message || "Registration failed");
@@ -253,6 +257,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUser({ ...user, isVerified: true });
           showAlert(response.data.message || "Account verified successfully!", "success");
           localStorage.removeItem("pendingVerificationEmail");
+          await checkAuth(); 
           return true;
         }
         throw new Error("User not found");
