@@ -5,6 +5,10 @@ const { uploadMedia } = require('../utils/cloudinary');
 // Get User Details
 exports.getUserDetails = async (req, res) => {
   try {
+    if (!req.user || !req.user._id) {
+      console.error('Invalid req.user:', req.user);
+      return res.status(401).json({ success: false, message: 'Unauthorized: Invalid user data' });
+    }
     const user = await User.findById(req.user._id).select('-password -sessions.token');
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });

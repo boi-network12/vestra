@@ -8,6 +8,7 @@ export default function CustomTabs({ state, colors }) {
 
     const hiddenRoutes = [
         'post',
+        'settings'
     ];
 
     const shouldHideTabs = hiddenRoutes.some(

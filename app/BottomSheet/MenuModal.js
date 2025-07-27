@@ -1,27 +1,43 @@
+import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Modalize } from 'react-native-modalize';
 import { Portal } from 'react-native-portalize';
 import { heightPercentageToDP as hp } from 'react-native-responsive-screen';
+import { useRouter } from 'expo-router';
+
+const MENU_ITEMS = [
+  { label: 'Settings and Privacy', icon: 'settings-outline', path: '/settings' },
+  { label: 'Job', icon: 'briefcase-outline', path: '/job' },
+  { label: 'Help', icon: 'help-circle-outline', path: '/help' },
+  { label: 'Feedback', icon: 'chatbubble-ellipses-outline', path: '/feedback' },
+];
 
 export default function MenuModal({ modalizeRef, colors, onPositionChange, closeModal }) {
-  const handleOptionPress = (option) => {
-    console.log(`${option} pressed`);
+  const router = useRouter();
+
+  const handlePress = (path) => {
     closeModal();
-    // Add navigation or action logic here as needed
+    router.push(path);
   };
 
   return (
     <Portal>
       <Modalize
         ref={modalizeRef}
-        adjustToContentHeight={true}
-        handleStyle={{ backgroundColor: colors.subText, width: hp(5), height: hp(0.5), position: 'absolute', top: hp(4) }}
+        adjustToContentHeight
+        handleStyle={{
+          backgroundColor: colors.subText,
+          width: hp(5),
+          height: hp(0.5),
+          position: 'absolute',
+          top: hp(4),
+        }}
         modalStyle={{ backgroundColor: colors.background }}
         onPositionChange={onPositionChange}
-        withOverlay={true}
+        withOverlay
         overlayStyle={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
-        panGestureEnabled={true}
+        panGestureEnabled
       >
         <View style={[styles.bottomSheetContent, { backgroundColor: colors.background }]}>
           <View style={styles.bottomSheetHeader}>
@@ -32,29 +48,12 @@ export default function MenuModal({ modalizeRef, colors, onPositionChange, close
           </View>
 
           <View style={styles.menuContainer}>
-            {/* Settings and Privacy */}
-            <TouchableOpacity style={styles.menuItem} onPress={() => handleOptionPress('Settings and Privacy')}>
-              <Ionicons name="settings-outline" size={hp(2.5)} color={colors.text} />
-              <Text style={[styles.menuText, { color: colors.text }]}>Settings and Privacy</Text>
+          {MENU_ITEMS.map(({ label, icon, path }) => (
+            <TouchableOpacity key={path} style={styles.menuItem} onPress={() => handlePress(path)}>
+              <Ionicons name={icon} size={hp(2.5)} color={colors.text} />
+              <Text style={[styles.menuText, { color: colors.text }]}>{label}</Text>
             </TouchableOpacity>
-
-            {/* Job */}
-            <TouchableOpacity style={styles.menuItem} onPress={() => handleOptionPress('Job')}>
-              <Ionicons name="briefcase-outline" size={hp(2.5)} color={colors.text} />
-              <Text style={[styles.menuText, { color: colors.text }]}>Job</Text>
-            </TouchableOpacity>
-
-            {/* Other Cool Option 1 */}
-            <TouchableOpacity style={styles.menuItem} onPress={() => handleOptionPress('Help')}>
-              <Ionicons name="help-circle-outline" size={hp(2.5)} color={colors.text} />
-              <Text style={[styles.menuText, { color: colors.text }]}>Help</Text>
-            </TouchableOpacity>
-
-            {/* Other Cool Option 2 */}
-            <TouchableOpacity style={styles.menuItem} onPress={() => handleOptionPress('Feedback')}>
-              <Ionicons name="chatbubble-ellipses-outline" size={hp(2.5)} color={colors.text} />
-              <Text style={[styles.menuText, { color: colors.text }]}>Feedback</Text>
-            </TouchableOpacity>
+          ))}
           </View>
         </View>
       </Modalize>

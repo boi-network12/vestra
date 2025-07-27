@@ -9,6 +9,8 @@ import RightSidebar from "../_components/RightSidebar";
 import MobileNav from "../_components/MobileNav";
 import { mobileNavItems } from "@/constant/navItems";
 import { useAuth } from "@/hooks/authHooks";
+import { usePathname } from "next/navigation";
+import { IoMenuSharp } from "react-icons/io5";
 
 const trends: Trend[] = [
   { topic: "Tech", posts: "1.2M" },
@@ -16,38 +18,52 @@ const trends: Trend[] = [
   { topic: "Next.js", posts: "500K" },
 ];
 
+const noSidebarRoutes = ["/settings"]
+const noTabNeeded = ["/settings"]
+
 export default function ProtectedLayout({ children }: { children: ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { user, logout, isLoading, switchAccount, linkAccount, linkedAccounts } = useAuth();
+  const pathname = usePathname();
 
   const toggleSidebar = () => {
     setIsSidebarOpen((prev) => !prev);
   };
 
+  const hideSidebar = noSidebarRoutes?.includes(pathname);
+  const hideMobileNavbar = noTabNeeded?.includes(pathname)
+
   return (
     <ProtectedRoute>
       <div className="flex min-h-screen bg-gray-100">
         {/* Hamburger Menu for Tablet/Mobile */}
-        <button
-          className="lg:hidden p-4 fixed top-0 left-0 z-30"
-          onClick={toggleSidebar}
-        >
-          ☰
-        </button>
+        {!hideSidebar && (
+          <button
+            className="lg:hidden p-4 fixed top-0 left-0 z-30"
+            onClick={toggleSidebar}
+            aria-label="menu"
+          >
+            <IoMenuSharp className="text-xl cursor-pointer text-gray-850" />
+          </button>
+        )}
 
-        <LeftSidebar
-          isSidebarOpen={isSidebarOpen}
-          toggleSidebar={toggleSidebar}
-          user={user}
-          logout={logout}
-          isLoading={isLoading}
-          switchAccount={switchAccount}
-          linkAccount={linkAccount}
-          linkedAccounts={linkedAccounts}
-        />
+        {!hideSidebar && (
+          <LeftSidebar
+            isSidebarOpen={isSidebarOpen}
+            toggleSidebar={toggleSidebar}
+            user={user}
+            logout={logout}
+            isLoading={isLoading}
+            switchAccount={switchAccount}
+            linkAccount={linkAccount}
+            linkedAccounts={linkedAccounts}
+          />
+        )}
         <MainContent>{children}</MainContent>
         <RightSidebar trends={trends} />
-        <MobileNav navItems={mobileNavItems} />
+        {!hideMobileNavbar && (
+           <MobileNav navItems={mobileNavItems} />
+        )}
       </div>
     </ProtectedRoute>
   );
