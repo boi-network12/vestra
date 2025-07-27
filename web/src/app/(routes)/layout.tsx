@@ -18,7 +18,7 @@ const trends: Trend[] = [
 
 export default function ProtectedLayout({ children }: { children: ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading, switchAccount, linkAccount, linkedAccounts } = useAuth();
 
   const toggleSidebar = () => {
     setIsSidebarOpen((prev) => !prev);
@@ -40,6 +40,10 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
           toggleSidebar={toggleSidebar}
           user={user}
           logout={logout}
+          isLoading={isLoading}
+          switchAccount={switchAccount}
+          linkAccount={linkAccount}
+          linkedAccounts={linkedAccounts}
         />
         <MainContent>{children}</MainContent>
         <RightSidebar trends={trends} />

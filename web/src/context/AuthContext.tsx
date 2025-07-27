@@ -230,8 +230,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         });
         setLinkedAccounts([]);
         setError(null);
-        showAlert(response.data.message || "Registration successful! Please verify your email.", "success");
-        await checkAuth();
+        // await checkAuth();
         return true;
       } else {
         throw new Error(response.data.message || "Registration failed");

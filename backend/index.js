@@ -11,12 +11,15 @@ const initializeSocket = require("./socket/socket");
 const mongoose = require('mongoose'); 
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 const { schedulePermanentDelete } = require("./jobs/permanentDelete");
 
 dotenv.config();
 
 const app = express();
 const httpServer = createServer(app);
+
+require("./jobs/cleanupNotifications")
 
 // Security Middleware
 app.use(helmet());
@@ -62,6 +65,7 @@ app.get("/", (req, res) => {
 // API Routes (Add your routes here)
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // 404 Handler
 app.use((req, res, next) => {

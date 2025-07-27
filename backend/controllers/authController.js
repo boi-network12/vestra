@@ -4,9 +4,10 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const UserHistory = require('../models/UserHistory');
-const { sendVerificationEmail, sendWelcomeEmail, sendLoginNotifyEmail, sendPasswordChangeEmail } = require('../utils/email');
+const { sendVerificationEmail, sendWelcomeEmail, sendLoginNotifyEmail, sendPasswordChangeEmail, sendPasswordResetEmail } = require('../utils/email');
 const mongoose = require('mongoose');
 const { processLocation } = require('../helper/locationHelper');
+const { addNotificationToQueue } = require('../jobs/notificationJob');
 
 // Generate JWT
 const generateToken = (id) => {
@@ -122,8 +123,6 @@ exports.register = async (req, res) => {
 
     await user.save({ validateBeforeSave: false });
 
-    console.log('Generated OTP for registration:', verificationToken, 'for email:', email); // Debug log
-
     try {
       await sendVerificationEmail(email, firstName, verificationToken);
       user.verificationMethod = 'email';
@@ -132,13 +131,6 @@ exports.register = async (req, res) => {
       console.error('Email sending error during registration:', err);
       user.verificationMethod = 'manual';
       await user.save({ validateBeforeSave: false });
-    }
-
-    // Send welcome email
-    try {
-      await sendWelcomeEmail(email, firstName);
-    } catch (err) {
-      console.error('Failed to send welcome email:', err);
     }
 
     res.status(201).json({
@@ -178,12 +170,26 @@ exports.verifyUser = async (req, res) => {
       });
     }
 
-    console.log('User verified:', user.email); // Debug log
     user.isVerified = true;
     user.verificationToken = undefined;
     user.verificationTokenExpires = undefined;
     user.verificationAttempts = { count: 0, lastAttempt: undefined };
     await user.save();
+
+    const email = user.email;
+    const firstName = user.profile.firstName || 'user';
+
+    // Send welcome email
+    try {
+      await sendWelcomeEmail(email, firstName);
+      await addNotificationToQueue({
+        userId: user._id,
+        type: 'system',
+        message: 'Welcome to our platform! Your account has been successfully verified.',
+      })
+    } catch (err) {
+      console.error('Failed to send welcome email:', err);
+    }
 
     res.json({ 
       success: true, 
@@ -191,7 +197,7 @@ exports.verifyUser = async (req, res) => {
       data: {
         _id: user._id,
         username: user.username,
-        email: user.email,
+        email: email,
       },
     });
   } catch (err) {
@@ -311,6 +317,15 @@ exports.login = async (req, res) => {
 
       try {
         await sendVerificationEmail(user.email, user.profile.firstName, verificationToken);
+        
+        if(user.notificationSettings.emailNotifications) {
+          await addNotificationToQueue({
+            userId: user._id,
+            type: 'account_change',
+            message: `New login detected from ${processedLocation.city || 'unknown city'}, ${processedLocation.country || 'unknown country'}. Please verify your account.`,
+          })
+        }
+
         user.verificationMethod = 'email';
         await user.save({ validateBeforeSave: false });
       } catch (err) {
@@ -416,7 +431,7 @@ exports.forgotPassword = async (req, res) => {
     await user.save({ validateBeforeSave: false });
 
     try {
-      await sendVerificationEmail(user.email, user.profile.firstName, resetOtp);
+      await sendPasswordResetEmail(user.email, user.profile.firstName, resetOtp);
       res.json({
         success: true,
         message: "Password reset OTP sent to your email",
@@ -481,6 +496,11 @@ exports.resetPassword = async (req, res) => {
     // Send password change notification email
     try {
       await sendPasswordChangeEmail(user.email, user.profile.firstName);
+      await addNotificationToQueue({
+        userId: user._id,
+        type: 'account_change',
+        message: 'Your password has been successfully reset.'
+      })
     } catch (err) {
       console.error('Failed to send password change notification email:', err);
     }
@@ -742,6 +762,12 @@ exports.deleteUser = async (req, res) => {
       { $pull: { linkedAccounts: userId } }
     );
 
+    await addNotificationToQueue({
+      userId: user._id,
+      type: 'account_change',
+      message: 'Your account has been successfully deleted. You can recover it within 30 days.',
+    });
+
     res.json({ success: true, message: 'User account deleted successfully' });
   } catch (err) {
     console.error('Delete user error:', err);
@@ -797,6 +823,12 @@ exports.recoverAccount = async (req, res) => {
       ipAddress: req.ip,
       device: req.headers['user-agent'] || 'unknown',
     });
+
+    await addNotificationToQueue({
+      userId: user._id,
+      type: 'account_change',
+      message: 'Your account has been successfully recovered. You can now log in with your credentials.',
+    })
 
     res.json({
       success: true,

@@ -257,6 +257,7 @@ export const AuthProvider = ({ children }) => {
       console.log('Verification response:', response.data); // Debug log
       if (response.data.success) {
         setUser({ ...user, isVerified: true });
+        fetchLinkedAccounts(await AsyncStorage.getItem('token'));
         showAlert('Account verified successfully!', 'success');
         return true;
       }

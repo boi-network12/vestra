@@ -7,8 +7,8 @@ const path = require('path');
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: process.env.EMAIL_USERNAME || 'kamdilichukwu6@gmail.com',
-    pass: process.env.EMAIL_PASSWORD || 'gtup tobq znth kaei',
+    user: process.env.EMAIL_USERNAME || 'appvestra@gmail.com',
+    pass: process.env.EMAIL_PASSWORD || 'wpxe gscr vskt tuij',
   },
 });
 
@@ -31,8 +31,7 @@ const compileTemplate = (templateName, context) => {
 // Send verification email
 exports.sendVerificationEmail = async (email, name, code) => {
   try {
-    const templateName = code.length === 6 ? 'forgotpassword' : 'verification';
-    const html = compileTemplate(templateName, {
+    const html = compileTemplate('verification', {
       name,
       code,
       year: new Date().getFullYear(),
@@ -41,14 +40,37 @@ exports.sendVerificationEmail = async (email, name, code) => {
     const mailOptions = {
       from: `"Vestra" <${process.env.EMAIL_USERNAME}>`,
       to: email,
-      subject: code.length === 6 ? 'Password Reset OTP' : 'Verify Your Email Address',
+      subject: 'Verify Your Email Address',
       html,
     };
 
     await transporter.sendMail(mailOptions);
-    console.log(`Email sent to ${email}`);
+    console.log(`Verification email sent to ${email}`);
   } catch (error) {
-    console.error(`Error sending email to ${email}:`, error);
+    console.error(`Error sending verification email to ${email}:`, error);
+    throw new Error('Email sending failed');
+  }
+};
+
+exports.sendPasswordResetEmail = async (email, name, code) => {
+  try {
+    const html = compileTemplate('forgotpassword', {
+      name,
+      code,
+      year: new Date().getFullYear(),
+    });
+
+    const mailOptions = {
+      from: `"Vestra" <${process.env.EMAIL_USERNAME}>`,
+      to: email,
+      subject: 'Password Reset OTP',
+      html,
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`Password reset OTP email sent to ${email}`);
+  } catch (error) {
+    console.error(`Error sending password reset OTP email to ${email}:`, error);
     throw new Error('Email sending failed');
   }
 };
@@ -123,5 +145,51 @@ exports.sendPasswordChangeEmail = async (email, name) => {
   } catch (error) {
     console.error(`Error sending password change notification email to ${email}:`, error);
     throw new Error('Email sending failed');
+  }
+};
+
+// Send push notification (placeholder for Firebase or similar service)
+exports.sendPushNotification = async (user, notification) => {
+  try {
+    // Implement push notification logic (e.g., Firebase Cloud Messaging)
+    console.log(`Push notification sent to ${user.email}: ${notification.message}`);
+    // Example: await firebase.messaging().send({ token: user.pushToken, notification: { title: notification.type, body: notification.message } });
+  } catch (error) {
+    console.error(`Error sending push notification to ${user.email}:`, error);
+    throw new Error('Push notification failed');
+  }
+};
+
+
+// Send email notification
+exports.sendEmailNotification = async (user, notification) => {
+  try {
+    const templateMap = {
+      follow: 'followNotification',
+      mention: 'mentionNotification',
+      account_change: 'accountChangeNotification',
+      subscription_update: 'subscriptionUpdateNotification',
+      system: 'systemNotification',
+    };
+
+    const templateName = templateMap[notification.type] || 'genericNotification';
+    const html = compileTemplate(templateName, {
+      name: user.profile.firstName || 'User',
+      message: notification.message,
+      year: new Date().getFullYear(),
+    });
+
+    const mailOptions = {
+      from: `"Vestra" <${process.env.EMAIL_USERNAME}>`,
+      to: user.email,
+      subject: `New ${notification.type} Notification`,
+      html,
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`Email notification sent to ${user.email} for ${notification.type}`);
+  } catch (error) {
+    console.error(`Error sending email notification to ${user.email}:`, error);
+    throw new Error('Email notification failed');
   }
 };
