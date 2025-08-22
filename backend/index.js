@@ -6,12 +6,11 @@ const { errorHandler } = require("./middleware/errorMiddleware");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const rateLimit = require("express-rate-limit");
+const compression = require("compression");
 const { createServer } = require("http");
 const initializeSocket = require("./socket/socket");
 const mongoose = require('mongoose'); 
-const authRoutes = require('./routes/authRoutes');
-const userRoutes = require('./routes/userRoutes');
-const notificationRoutes = require('./routes/notificationRoutes');
+const apiRoutes = require("./routes/routes");
 const { schedulePermanentDelete } = require("./jobs/permanentDelete");
 
 dotenv.config();
@@ -38,6 +37,10 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
+// compression
+app.use(compression());
+
+
 // Request Logging
 if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
@@ -46,8 +49,8 @@ if (process.env.NODE_ENV === "development") {
 }
 
 // Body Parsers
-app.use(express.json({ limit: "10kb" }));
-app.use(express.urlencoded({ extended: true, limit: "10kb" }));
+app.use(express.json({ limit: "50kb" }));
+app.use(express.urlencoded({ extended: true, limit: "50kb" }));
 
 // Initialize Socket.IO
 initializeSocket(httpServer);
@@ -63,9 +66,7 @@ app.get("/", (req, res) => {
 });
 
 // API Routes (Add your routes here)
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/notifications', notificationRoutes);
+app.use("/api", apiRoutes);
 
 // 404 Handler
 app.use((req, res, next) => {

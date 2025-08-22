@@ -17,6 +17,7 @@
     "bcryptjs": "^3.0.2",
     "bull": "^4.16.5",
     "cloudinary": "^1.41.3",
+    "compression": "^1.8.1",
     "cors": "^2.8.5",
     "country-list": "^2.3.0",
     "crypto-js": "^3.3.0",

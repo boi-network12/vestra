@@ -7,102 +7,158 @@ import {
   StatusBar as RNStatusBar,
   TextInput,
   SectionList,
+  TouchableOpacity,
+  Modal,
 } from 'react-native';
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import SettingsHeader from '../../../components/headers/SettingsHeader';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../../context/ThemeContext';
 import { getThemeColors } from '../../../utils/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { heightPercentageToDP as hp } from 'react-native-responsive-screen';
+import { SETTINGS_SECTIONS } from '../../../constant/SeatingsSection'
+
+// ✅ Separate search bar so it won't re-mount and close the keyboard
+const SearchHeaderComponent = ({ searchText, setSearchText, colors }) => (
+  <View style={[styles.inputContainer, { borderBottomColor: colors.border }]}>
+    <TextInput
+      style={[
+        styles.searchInput,
+        {
+          color: colors.text,
+          backgroundColor: colors.inputBg,
+          borderColor: colors.border,
+        },
+      ]}
+      placeholder="Search"
+      placeholderTextColor={colors.subText}
+      selectionColor={colors.subText}
+      value={searchText}
+      onChangeText={setSearchText}
+    />
+  </View>
+);
+
+SearchHeaderComponent.displayName = 'SearchHeader';
+
+const SearchHeader = React.memo(SearchHeaderComponent);
 
 export default function Settings() {
   const { isDark } = useTheme();
   const colors = getThemeColors(isDark);
   const router = useRouter();
+  const [searchText, setSearchText] = useState('');
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
 
-  const SECTIONS = [
-    {
-      title: 'Account & Privacy',
-      data: [
-        { id: '2', title: 'Account Settings' },
-        { id: '3', title: 'Account' },
-        { id: '4', title: 'Notification and Discovery' },
-        { id: '5', title: 'Connection and Discovery' },
-        { id: '6', title: 'Content Filters' },
-        { id: '7', title: 'Privacy Settings' },
-        { id: '8', title: 'Privacy' },
-        { id: '9', title: 'Data' },
-      ],
-    },
-    {
-      title: 'App Preferences',
-      data: [
-        { id: '10', title: 'App Settings' },
-        { id: '11', title: 'Accessibility' },
-        { id: '12', title: 'Language' },
-      ],
-    },
-    {
-      title: 'Support & Feedback',
-      data: [
-        { id: '13', title: 'Support' },
-        { id: '14', title: 'Feedback' },
-        { id: '15', title: 'Help Center' },
-      ],
-    },
-    {
-      title: 'Account Management',
-      data: [
-        { id: '16', title: 'Logins' },
-        { id: '17', title: 'Add account' },
-      ],
-    },
-  ];
+
+  // ✅ Stable SECTIONS array with useMemo
+  const SECTIONS = useMemo(() => SETTINGS_SECTIONS, []);
+
+  // Filter sections based on search text
+  const filteredSections = useMemo(() => {
+    if (!searchText.trim()) return SECTIONS;
+    const query = searchText.toLowerCase();
+    return SECTIONS.map(section => ({
+      ...section,
+      data: section.data.filter(item =>
+        item.title.toLowerCase().includes(query)
+      ),
+    })).filter(section => section.data.length > 0);
+  }, [searchText, SECTIONS]);
+
 
   const renderItem = ({ item }) => (
-    <View style={[styles.itemContainer, { borderBottomColor: colors.border }]}>
+    <TouchableOpacity 
+         style={[styles.itemContainer, { borderBottomColor: colors.border }]}
+         onPress={() => {
+           if(item.component) {
+              setSelectedItem(item);
+              setModalVisible(true);
+           }
+         }}
+     >
       <Text style={[styles.itemText, { color: colors.text }]}>{item.title}</Text>
       <Ionicons name="chevron-forward" color={colors.text} size={hp(2)} />
-    </View>
+    </TouchableOpacity>
   );
 
   const renderSectionHeader = ({ section }) => (
-    <View style={[styles.sectionHeader, { backgroundColor: colors.background }]}>
-      <Text style={[styles.sectionTitle, { color: colors.subText }]}>{section.title}</Text>
+    <View
+      style={[styles.sectionHeader, { backgroundColor: colors.background }]}
+    >
+      <Text style={[styles.sectionTitle, { color: colors.subText }]}>
+        {section.title}
+      </Text>
     </View>
   );
 
-  const ListHeader = () => (
-    <View style={[styles.inputContainer, { borderBottomColor: colors.border }]}>
-      <TextInput
-        style={[styles.searchInput, { color: colors.text, backgroundColor: colors.inputBg, borderColor: colors.border }]}
-        placeholder="Search"
-        placeholderTextColor={colors.subText}
-        selectionColor={colors.subText}
-      />
-    </View>
-  );
 
   return (
     <SafeAreaView
       style={{
         flex: 1,
-        paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight : 0,
+        paddingTop:
+          Platform.OS === 'android' ? RNStatusBar.currentHeight : 0,
         backgroundColor: colors.background,
       }}
     >
-      <SettingsHeader onBackPress={() => router.back()} colors={colors} />
+      <SettingsHeader 
+         onBackPress={() => router.back()} 
+         colors={colors} 
+         title="Settings"
+      />
 
       <SectionList
-        sections={SECTIONS}
+        keyboardShouldPersistTaps="handled" // ✅ Keep keyboard up
+        sections={filteredSections}
         keyExtractor={(item, index) => index.toString()}
         renderItem={renderItem}
         renderSectionHeader={renderSectionHeader}
-        ListHeaderComponent={ListHeader}
+        ListHeaderComponent={
+          <SearchHeader
+            searchText={searchText}
+            setSearchText={setSearchText}
+            colors={colors}
+          />
+        }
         contentContainerStyle={styles.listContainer}
         stickySectionHeadersEnabled
+        ListEmptyComponent={
+          <View style={{ padding: 20, alignItems: 'center' }}>
+            <Text style={{ color: colors.subText }}>No results found</Text>
+          </View>
+        }
       />
+
+      <Modal
+         animationType='slide'
+          transparent={false}
+          visible={modalVisible}
+          onRequestClose={() => setModalVisible(false)}
+      >
+        <SafeAreaView
+            style={{
+              flex: 1,
+              // paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight : 0,
+              backgroundColor: colors.background
+            }}
+        >
+          <SettingsHeader
+              onBackPress={() => setModalVisible(false)}
+              colors={colors}
+              title={selectedItem?.title}
+          />
+          <View style={styles.modalContainer}>
+            {selectedItem && selectedItem.component ? (
+              <selectedItem.component colors={colors} />
+            ) : (
+              <Text style={{ color: colors.text }}>No content available</Text>
+            )}
+          </View>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -113,7 +169,7 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     padding: hp(2),
-    borderBottomWidth: 1
+    borderBottomWidth: 1,
   },
   searchInput: {
     height: hp(5),

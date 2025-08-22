@@ -3,13 +3,13 @@ import React from 'react'
 import { Ionicons } from '@expo/vector-icons'
 import { heightPercentageToDP as hp } from "react-native-responsive-screen"
 
-export default function SettingsHeader({ onBackPress, colors }) {
+export default function SettingsHeader({ onBackPress, colors, title }) {
   return (
     <View style={[ styles.container, { borderBottomColor: colors.border }]}>
       <TouchableOpacity onPress={onBackPress}>
         <Ionicons name="chevron-back" size={24} color={colors.text} />
       </TouchableOpacity>
-      <Text style={[ styles.title, { color: colors.text }]}>Settings</Text>
+      <Text style={[ styles.title, { color: colors.text }]}>{title}</Text>
       <Text></Text>
     </View>
   )
