@@ -1,8 +1,12 @@
 # Vestra Monorepo
 
-Welcome to the **Vestra** monorepo! This repository brings together the full-stack components of the Vestra project — a modern web and mobile banking solution.
+**Vestra** is a modern full-stack **social media platform** designed for web and mobile.  
+It enables people to connect, share, and interact in real time through posts, comments, likes, messaging, and more — all in a secure, responsive, and scalable environment.
 
-## 📦 Structure
+This repository is a **monorepo** containing the web frontend, mobile app, and backend API for Vestra.
+
+
+## 📦 monorepo Structure
 
 This monorepo contains three main parts:
 
@@ -11,25 +15,29 @@ Each of these folders was originally a standalone GitHub repository. They have n
 
 ---
 
-## 🔧 About Vestra
+## ✨ Features
 
-**Vestra** is a secure and user-friendly digital banking platform designed for seamless financial transactions. It includes:
 
-- 💻 **Web App** for browser access  
-- 📱 **Mobile App** for Android & iOS users  
-- 🔐 **Backend API** with user authentication, transactions, and database operations  
+- 🌐 **Web App** — Responsive social media platform accessible via browser  
+- 📱 **Mobile App** — iOS & Android support with a smooth native-like experience  
+- 📝 **User Profiles** — Customizable profile pictures, bios, and cover images  
+- 💬 **Real-Time Messaging** — Private chat and group conversations  
+- ❤️ **Social Features** — Posts, likes, comments, and content sharing  
+- 🔒 **Authentication & Security** — JWT/Firebase-based auth and data protection  
+- 📡 **Live Updates** — Instant notifications and content refresh without reloads   
 
 ---
 
 ## ⚙️ Tech Stack
 
-| Layer     | Technology                    |
-|-----------|-------------------------------|
-| Frontend  | React.js, Tailwind CSS        |
-| Mobile    | React Native (with Expo)      |
-| Backend   | Node.js, Express, MongoDB     |
-| Auth      | Firebase / JWT                |
-| Hosting   | Vercel, Render, or custom     |
+| Layer      | Technology |
+|------------|------------|
+| Frontend   | Next.js, Tailwind CSS |
+| Mobile     | React Native (Expo) |
+| Backend    | Node.js, Express, MongoDB |
+| Auth       | JWT |
+| Hosting    | Vercel (Web), Expo EAS (Mobile), Render/Custom (Backend) |
+| Realtime   | Socket.io |
 
 ---
 
@@ -53,3 +61,21 @@ cd vestra
 cd backend
 npm install
 npm run dev
+
+```
+
+## 📜 License 
+
+- This project is licensed under the MIT License.
+
+
+## 👤 Author
+ 
+- Name kamdilichukwu okolo samuel
+
+-  Github: [@boi-network12](https://github.com/boi-network12)
+
+-  portfolio: [kamdi dev](https://kamdidev.vercel.app)
+
+-  Email: kamdilichukwu2020@gmail.com
+
