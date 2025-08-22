@@ -16,34 +16,11 @@ export const AuthProvider = ({ children }) => {
   const [alert, setAlert] = useState({ visible: false, message: '', type: 'info' });
 
   const getUserLocation = async () => {
-    try {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        console.log('Permission to access location was denied');
-        return {
-          latitude: null,
-          longitude: null,
-          city: 'unknown',
-          country: 'unknown',
-        };
-      }
-
-      let location = await Location.getCurrentPositionAsync({});
-      const { latitude, longitude } = location.coords;
-
-      // Get address details
-      let geocode = await Location.reverseGeocodeAsync({ latitude, longitude });
-      const address = geocode[0] || {};
-
-      return {
-        latitude,
-        longitude,
-        city: address.city || 'unknown',
-        country: address.country || 'unknown',
-      };
-      
-    } catch (error) {
-      console.error('Error getting location:', error);
+  try {
+    // Check if location services are enabled
+    const isLocationAvailable = await Location.hasServicesEnabledAsync();
+    if (!isLocationAvailable) {
+      console.warn('Location services are disabled on the device');
       return {
         latitude: null,
         longitude: null,
@@ -51,7 +28,46 @@ export const AuthProvider = ({ children }) => {
         country: 'unknown',
       };
     }
+
+    // Request foreground location permissions
+    let { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      console.warn('Location permission denied by user');
+      return {
+        latitude: null,
+        longitude: null,
+        city: 'unknown',
+        country: 'unknown',
+      };
+    }
+
+    // Get current position with timeout and accuracy settings
+    let location = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.Balanced, // Use balanced accuracy for better performance
+      timeout: 10000, // 10-second timeout
+    });
+    const { latitude, longitude } = location.coords;
+
+    // Perform reverse geocoding
+    let geocode = await Location.reverseGeocodeAsync({ latitude, longitude });
+    const address = geocode[0] || {};
+
+    return {
+      latitude,
+      longitude,
+      city: address.city || 'unknown',
+      country: address.country || 'unknown',
+    };
+  } catch (error) {
+    console.error('Error getting location:', error.message);
+    return {
+      latitude: null,
+      longitude: null,
+      city: 'unknown',
+      country: 'unknown',
+    };
   }
+};
 
   const showAlert = (message, type = 'info') => {
     setAlert({ visible: true, message, type });

@@ -14,15 +14,15 @@ import {
   View,
 } from 'react-native';
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from 'react-native-responsive-screen';
-import CustomAlert from '../../components/custom/CustomAlert';
 import { useAuth } from '../../hooks/useAuth';
+import { useAlert } from '../../context/AlertContext';
 
 export default function OTP() {
   const { verifyUser, resendVerificationCode, error, isLoading } = useAuth();
   const { email: emailFromParams } = useLocalSearchParams();
+  const { showAlert } = useAlert();
   const [email, setEmail] = useState(emailFromParams || '');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
-  const [alert, setAlert] = useState({ visible: false, message: '', type: 'info' });
   const [timer, setTimer] = useState(30);
   const inputRefs = useRef([]);
 
@@ -34,12 +34,12 @@ export default function OTP() {
         if (storedEmail) {
           setEmail(storedEmail);
         } else {
-          setAlert({ visible: true, message: 'Email not available. Please try registering again.', type: 'error' });
+          showAlert('Email not available. Please try registering again.', 'error');
         }
       }
     };
     fetchEmail();
-  }, [email]);
+  }, [email, showAlert]);
 
   // Timer for resend OTP
   useEffect(() => {
@@ -82,7 +82,7 @@ export default function OTP() {
 
   const handleSubmit = async () => {
     if (!validateOtp()) {
-      setAlert({ visible: true, message: 'Please enter all 6 digits', type: 'error' });
+      showAlert('Please enter all 6 digits', 'error');
       return;
     }
 
@@ -91,29 +91,29 @@ export default function OTP() {
 
     if (success) {
       await AsyncStorage.removeItem('pendingVerificationEmail'); // Clear stored email
-      setAlert({ visible: true, message: 'Account verified successfully!', type: 'success' });
+      showAlert('Account verified successfully!', 'success');
       setTimeout(() => router.replace('home'), 1500);
     } else {
-      setAlert({ visible: true, message: error || 'Invalid or expired code', type: 'error' });
+      showAlert(error || 'Invalid or expired code', 'error');
     }
   };
 
   const handleResend = async () => {
     if (timer > 0) return;
     if (!email) {
-      setAlert({ visible: true, message: 'Email not provided', type: 'error' });
+      showAlert('Email not provided', 'error');
       return;
     }
 
     const success = await resendVerificationCode({ email });
 
     if (success) {
-      setAlert({ visible: true, message: 'New OTP sent to your email', type: 'success' });
+      showAlert('New OTP sent to your email', 'success');
       setOtp(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
       setTimer(30);
     } else {
-      setAlert({ visible: true, message: error || 'Failed to resend OTP', type: 'error' });
+      showAlert(error || 'Failed to resend OTP', 'error');
     }
   };
 
@@ -169,13 +169,6 @@ export default function OTP() {
           <Text style={styles.btnText}>{isLoading ? 'Verifying...' : 'Verify'}</Text>
         </TouchableOpacity>
       </KeyboardAvoidingView>
-
-      <CustomAlert
-        visible={alert.visible}
-        message={alert.message}
-        type={alert.type}
-        onClose={() => setAlert({ ...alert, visible: false })}
-      />
     </SafeAreaView>
   );
 }

@@ -4,10 +4,10 @@ import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, StatusBar as RNStatusBar, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from 'react-native-responsive-screen';
-import CustomAlert from '../../components/custom/CustomAlert';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../hooks/useAuth';
 import { getThemeColors } from '../../utils/theme';
+import { useAlert } from '../../context/AlertContext';
 
 export default function Register() {
   const lastNameRef = useRef(null);
@@ -15,6 +15,7 @@ export default function Register() {
   const passwordRef = useRef(null);
   const { register, error, isLoading } = useAuth();
   const { isDark } = useTheme();
+  const { showAlert } = useAlert();
   const colors = getThemeColors(isDark);
   const [form, setForm] = useState({
     firstName: '',
@@ -24,7 +25,6 @@ export default function Register() {
   });
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
-  const [alert, setAlert] = useState({ visible: false, message: '', type: 'info' });
   
 
   const validateForm = () => {
@@ -51,7 +51,7 @@ export default function Register() {
 
     if (success) {
       await AsyncStorage.setItem('pendingVerificationEmail', form.email);
-      setAlert({ visible: true, message: 'Verify your email. A verification link has been sent.', type: 'success' });
+      showAlert('Verify your email. A verification link has been sent.', 'success');
       setTimeout(() => {
         router.push({
           pathname: 'verify',
@@ -59,7 +59,7 @@ export default function Register() {
         });
       }, 2000);
     } else {
-      setAlert({ visible: true, message: error || 'Registration failed', type: 'error' });
+      showAlert(error || 'Registration failed', 'error');
     }
   };
 
@@ -195,12 +195,6 @@ export default function Register() {
           </Text>
         </TouchableOpacity>
       </KeyboardAvoidingView>
-      <CustomAlert
-        visible={alert.visible}
-        message={alert.message}
-        type={alert.type}
-        onClose={() => setAlert({ ...alert, visible: false })}
-      />
     </SafeAreaView>
   );
 }

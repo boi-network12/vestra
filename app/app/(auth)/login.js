@@ -4,15 +4,16 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, StatusBar as RNStatusBar, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from 'react-native-responsive-screen';
-import CustomAlert from '../../components/custom/CustomAlert';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../hooks/useAuth';
 import { getThemeColors } from '../../utils/theme';
+import { useAlert } from '../../context/AlertContext';
 
 export default function Login() {
   const { login, error, isLoading } = useAuth();
   const { isDark } = useTheme();
   const colors = getThemeColors(isDark);
+  const { showAlert } = useAlert();
   const [form, setForm] = useState({
     email: '',
     password: '',
@@ -20,7 +21,6 @@ export default function Login() {
   });
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
-  const [alert, setAlert] = useState({ visible: false, message: '', type: 'info' });
 
   const validateForm = () => {
     const newErrors = {};
@@ -40,20 +40,20 @@ export default function Login() {
     console.log('Login error:', error); // Debug log to check error value
 
     if (success) {
-      setAlert({ visible: true, message: 'Login successful!', type: 'success' });
+      showAlert('Login successful!', 'success');
       router.replace('home');
     } else if (error && error.toLowerCase().includes('verify your account')) {
       // Store email for verification page
       await AsyncStorage.setItem('pendingVerificationEmail', form.email);
-      setAlert({ visible: true, message: 'Please verify your email. A code has been sent.', type: 'info' });
+      showAlert('Please verify your email. A code has been sent.', 'info');
       setTimeout(() => {
         console.log('Navigating to verify with email:', form.email); // Debug log
         router.push({ pathname: 'verify', params: { email: form.email } });
       }, 2000);
     } else if (error && error.includes('Too many verification requests')) {
-      setAlert({ visible: true, message: error, type: 'error' });
+      showAlert(error, 'error');
     } else {
-      setAlert({ visible: true, message: error || 'Login failed', type: 'error' });
+      showAlert(error || 'Login failed', 'error');
     }
   };
 
@@ -149,12 +149,6 @@ export default function Login() {
         </TouchableOpacity>
       </KeyboardAvoidingView> 
 
-      <CustomAlert
-        visible={alert.visible}
-        message={alert.message}
-        type={alert.type}
-        onClose={() => setAlert({ ...alert, visible: false })}
-      />
     </SafeAreaView>
   );
 }

@@ -10,94 +10,73 @@ import {
   View,
 } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
+import { useAlert } from '../../context/AlertContext';
 import { getThemeColors } from '../../utils/theme';
 
 const { width } = Dimensions.get('window');
 
-const CustomAlert = ({ visible, message, type = 'info', onClose, duration = 3000 }) => {
+const CustomAlert = () => {
   const { isDark } = useTheme();
   const colors = getThemeColors(isDark);
+  const { alert, hideAlert } = useAlert();
+  const { visible, message, type = 'info', duration = 3000, action } = alert;
   const translateY = useRef(new Animated.Value(120)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(0.8)).current;
 
   useEffect(() => {
-  if (visible) {
-    const handleClose = () => {
+    if (visible) {
       Animated.parallel([
-        Animated.timing(translateY, {
-          toValue: 120,
-          duration: 200,
-          easing: Easing.in(Easing.ease),
+        Animated.spring(translateY, {
+          toValue: 0,
+          tension: 80,
+          friction: 8,
           useNativeDriver: true,
         }),
         Animated.timing(opacity, {
-          toValue: 0,
-          duration: 200,
+          toValue: 1,
+          duration: 300,
+          easing: Easing.out(Easing.ease),
           useNativeDriver: true,
         }),
-        Animated.timing(scale, {
-          toValue: 0.8,
-          duration: 200,
+        Animated.spring(scale, {
+          toValue: 1,
+          tension: 100,
+          friction: 10,
           useNativeDriver: true,
         }),
-      ]).start(() => {
-        onClose();
-      });
-    };
+      ]).start();
 
+      const timer = setTimeout(() => {
+        handleClose();
+      }, duration);
+
+      return () => clearTimeout(timer);
+    }
+  }, [visible, duration, handleClose, translateY, opacity, scale]);
+
+  const handleClose = useCallback(() => {
     Animated.parallel([
-      Animated.spring(translateY, {
-        toValue: 0,
-        tension: 80,
-        friction: 8,
+      Animated.timing(translateY, {
+        toValue: 120,
+        duration: 200,
+        easing: Easing.in(Easing.ease),
         useNativeDriver: true,
       }),
       Animated.timing(opacity, {
-        toValue: 1,
-        duration: 300,
-        easing: Easing.out(Easing.ease),
+        toValue: 0,
+        duration: 200,
         useNativeDriver: true,
       }),
-      Animated.spring(scale, {
-        toValue: 1,
-        tension: 100,
-        friction: 10,
+      Animated.timing(scale, {
+        toValue: 0.8,
+        duration: 200,
         useNativeDriver: true,
       }),
-    ]).start();
-
-    const timer = setTimeout(() => {
-      handleClose();
-    }, duration);
-
-    return () => clearTimeout(timer);
-  }
-}, [visible, duration, onClose, opacity, scale, translateY]);
-
-
-  const handleClose = useCallback(() => {
-  Animated.parallel([
-    Animated.timing(translateY, {
-      toValue: 120,
-      duration: 200,
-      easing: Easing.in(Easing.ease),
-      useNativeDriver: true,
-    }),
-    Animated.timing(opacity, {
-      toValue: 0,
-      duration: 200,
-      useNativeDriver: true,
-    }),
-    Animated.timing(scale, {
-      toValue: 0.8,
-      duration: 200,
-      useNativeDriver: true,
-    }),
-  ]).start(() => {
-    onClose();
-  });
-}, [opacity, scale, translateY, onClose]);
+    ]).start(() => {
+      hideAlert();
+    });
+  }, [hideAlert, translateY, opacity, scale]);
 
 
   if (!visible) return null;
@@ -143,22 +122,30 @@ const CustomAlert = ({ visible, message, type = 'info', onClose, duration = 3000
           {alertStyles[type].icon}
         </Text>
         <Text
-          style={[
-            styles.message,
-            { color: isDark ? colors.text : '#111827' },
-          ]}
+          style={[styles.message, { color: isDark ? colors.text : '#111827' }]}
           numberOfLines={3}
           ellipsizeMode="tail"
         >
           {message}
         </Text>
-        <TouchableOpacity
-          onPress={handleClose}
-          style={[styles.closeButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.closeText, { color: colors.text }]}>×</Text>
-        </TouchableOpacity>
+        <View style={styles.buttonContainer}>
+          {action && (
+            <TouchableOpacity
+              onPress={action}
+              style={[styles.actionButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.actionText, { color: colors.primary }]}>Open Settings</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            onPress={handleClose}
+            style={[styles.closeButton, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.closeText, { color: colors.text }]}>×</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </Animated.View>
   );
@@ -194,13 +181,26 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     lineHeight: 22,
   },
+  buttonContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  actionButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  actionText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
   closeButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 8,
   },
   closeText: {
     fontSize: 20,
