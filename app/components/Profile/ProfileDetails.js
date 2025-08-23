@@ -1,82 +1,143 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Linking } from 'react-native';
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from 'react-native-responsive-screen';
 import { Ionicons } from '@expo/vector-icons'; // Assuming you're using expo-vector-icons
+import { Image } from 'expo-image';
+
+const blurhash =
+  '|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[';
+
+  const withOpacity = (hex, opacity) => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  };
+
 
 export default function ProfileDetails({ user, colors }) {
+
+
+  const fullName = `${user?.profile?.firstName || ''} ${user?.profile?.lastName || ''}`;
+  const dynamicFontSize = fullName.length > 20 ? hp(2) : hp(2.5);
+
   return (
-    <View style={[styles.profileCard, { backgroundColor: colors.card }]}>
-      <Text style={[styles.name, { color: colors.text }]}>
-        {user?.profile?.firstName} {user?.profile?.lastName}
-      </Text>
-      <Text style={[styles.bio, { color: colors.textSecondary }]}>
-        {user?.profile?.bio || 'No bio yet'}
-      </Text>
-      <View style={styles.statsRow}>
-        <TouchableOpacity style={styles.statItem} onPress={() => console.log('Navigate to posts')}>
-          <Ionicons name="grid-outline" size={hp(2.5)} color={colors.primary} />
-          <Text style={[styles.statNumber, { color: colors.text }]}>0</Text>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Posts</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.statItem} onPress={() => console.log('Navigate to followers')}>
-          <Ionicons name="people-outline" size={hp(2.5)} color={colors.primary} />
-          <Text style={[styles.statNumber, { color: colors.text }]}>
-            {user?.followers?.length || 0}
+    user && (
+      <View style={ [styles.container, { }]}>
+        <View style={[styles.ProfileDetails, {}]}>
+          <View style={styles.namesContainer}>
+            <Text style={[styles.nameText, { color: colors.text, fontSize: dynamicFontSize }]}>
+              {fullName}
+            </Text>
+            <Text style={[styles.usernameText, { color: colors.subText }]}>
+              {user?.username}
+            </Text>
+          </View>
+          <Image
+             style={styles.avatar}
+             source={{ uri: user?.profile?.avatar || 'https://picsum.photos/seed/696/3000/2000' }}
+             placeholder={{ blurhash }}
+             contentFit='cover'
+             transition={1000}
+          />
+        </View>
+        {/* bio and links */}
+        <View style={styles.bioContainer}>
+          <Text style={[ styles.bioText, { color: colors.text }]}>
+            {user?.profile?.bio || (<Text style={[styles.bioText, { color: colors.subText }]}>No bio available</Text>)}
           </Text>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Followers</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.statItem} onPress={() => console.log('Navigate to following')}>
-          <Ionicons name="person-add-outline" size={hp(2.5)} color={colors.primary} />
-          <Text style={[styles.statNumber, { color: colors.text }]}>
-            {user?.following?.length || 0}
-          </Text>
-          <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Following</Text>
-        </TouchableOpacity>
+
+          {/* follow link */}
+          <View style={styles.followLink}>
+            <TouchableOpacity>
+              <Text style={[ { color: colors.subText, fontSize: hp(1.6) }]}>
+                 {user?.followers?.length || 0} followers
+              </Text>
+            </TouchableOpacity>
+            <Ionicons name="ellipse" size={hp(0.2)} color={colors.subText} />  
+            
+            {user?.profile?.links?.[0]?.title && user?.profile?.links?.[0]?.url ? (
+                <TouchableOpacity
+                  onPress={() => Linking.openURL(user.profile.links[0].url)}
+                >
+                  <Text style={{ color: colors.subText, fontSize: hp(1.6) }}>
+                    {user.profile.links[0].title}
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <Text style={{ color: colors.subText }}>No link</Text>
+              )}
+
+          </View>
+
+          <View style={styles.btnContainer}>
+            <TouchableOpacity
+              style={[styles.btn, { backgroundColor: colors.background, borderColor: withOpacity(colors.subText, 0.4) }]}
+            >
+              <Text style={[styles.profileBtnText, { color: colors.text }]}>
+                Edit profile
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.btn, { backgroundColor: colors.background, borderColor: withOpacity(colors.subText, 0.4) }]}
+            >
+              <Text style={[styles.profileBtnText, { color: colors.text }]}>
+                Share profile
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
-    </View>
-  );
+    )
+  )
 }
 
 const styles = StyleSheet.create({
-  profileCard: {
-    marginHorizontal: wp(4),
-    padding: wp(4),
-    borderRadius: 16,
-    alignItems: 'center',
-    marginTop: hp(6), // Space for avatar overlap
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  name: {
-    fontSize: hp(2.6),
-    fontWeight: '700',
-    marginBottom: hp(0.5),
-  },
-  bio: {
-    fontSize: hp(1.8),
-    textAlign: 'center',
-    marginBottom: hp(2),
+  container: {
+    flex: 1,
     paddingHorizontal: wp(4),
   },
-  statsRow: {
+  ProfileDetails: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
-  },
-  statItem: {
+    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: wp(2),
   },
-  statNumber: {
-    fontSize: hp(2.2),
-    fontWeight: '600',
-    marginTop: hp(0.5),
+  namesContainer: {},
+  avatar: {
+    width: wp(20),
+    height: wp(20),
+    borderRadius: wp(10),
+    overflow: 'hidden',
   },
-  statLabel: {
-    fontSize: hp(1.6),
-    marginTop: hp(0.3),
+  nameText: {
+    fontWeight: "600"
   },
+  usernameText: {
+    fontSize: hp(1.8),
+    fontWeight: "400"
+  },
+  bioContainer: {
+    flexDirection: 'column',
+  },
+  followLink: {
+    flexDirection: "row",
+    alignItems: "center",
+     justifyContent: "flex-start",
+     gap: wp(2),
+     marginTop: wp(2),
+  },
+  btnContainer: {
+    flexDirection: "row",
+    marginTop: hp(3),
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  btn: {
+    borderWidth: 1,
+    borderRadius: wp(4),
+    width: wp(44),
+    height: hp(5),
+    alignItems: "center",
+    justifyContent: "center",
+  }
 });

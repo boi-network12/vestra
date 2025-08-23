@@ -37,6 +37,10 @@ const userSchema = new mongoose.Schema({
     firstName: { type: String, trim: true },
     lastName: { type: String, trim: true },
     bio: { type: String, maxlength: 500, trim: true },
+    links: [{
+      title: { type: String, trim: true },
+      url: { type: String, trim: true },
+    }],
     avatar: { type: String, default: '' },
     coverPhoto: { type: String, default: '' },
     location: {
@@ -77,7 +81,7 @@ const userSchema = new mongoose.Schema({
     expiryDate: Date,
     features: {
       blueTick: { type: Boolean, default: false },
-      dailyPostLimit: { type: Number, default: 10 }, // Basic: 10, Premium: 50, Elite: Unlimited
+      dailyPostLimit: { type: Number, default: 10 },
       analyticsAccess: { type: Boolean, default: false },
       prioritySupport: { type: Boolean, default: false },
     },
@@ -163,7 +167,7 @@ userSchema.add({
 });
 
 // Exclude deleted users from queries
-userSchema.pre('/^find/', function (next) {
+userSchema.pre(/^find/, function (next) {
   this.find({ isDelete: { $ne: true } });
   next();
 })
@@ -177,7 +181,7 @@ userSchema.pre('save', async function (next) {
 
 // Exclude deleted users in populate queries
 userSchema.pre('findOneAndUpdate', function (next) {
-  this.find({ isDeleted: { $ne: true } });
+  this.find({ isDelete: { $ne: true } });
   next();
 });
 

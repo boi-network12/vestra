@@ -13,6 +13,7 @@ import { useAuth } from '../../../hooks/useAuth';
 import { getThemeColors } from '../../../utils/theme';
 import ProfileDetails from '../../../components/Profile/ProfileDetails';
 import CustomRefreshControl from '../../../components/custom/CustomeRefreshCOntrol';
+import { useUser } from '../../../hooks/useUser';
 
 const { width } = Dimensions.get('window');
 const HEADER_HEIGHT = hp(25);
@@ -20,13 +21,14 @@ const AVATAR_SIZE = hp(10);
 
 export default function Profile() {
   const { user, isLoading, linkedAccounts, switchAccount, linkAccount } = useAuth();
+  const { fetchUserProfile } = useUser();
   const { isDark } = useTheme();
   const colors = getThemeColors(isDark);
   const switchAccountModalRef = useRef(null);
   const menuModalRef = useRef(null);
   const scrollY = useRef(new Animated.Value(0)).current;
   const [refreshing, setRefreshing] = useState(false);
-  const [viewMode, setViewMode] = useState('list'); // Toggle between 'list' and 'grid'
+  const [viewMode, setViewMode] = useState('list');
 
   const openSwitchAccountModal = useCallback(() => {
     switchAccountModalRef.current?.open();
@@ -59,43 +61,47 @@ export default function Profile() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    // Replace with actual data fetching logic
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setRefreshing(false);
+    try {
+      await fetchUserProfile(); 
+    } catch (error) {
+      console.error('Error refreshing user profile:', error);
+    } finally {
+      setRefreshing(false); 
+    }
   };
 
   const toggleViewMode = () => {
     setViewMode(viewMode === 'list' ? 'grid' : 'list');
   };
 
-  const renderHeader = () => {
-    if (!user) return null;
+  // const renderHeader = () => {
+  //   if (!user) return null;
 
-    const headerTranslate = scrollY.interpolate({
-      inputRange: [0, HEADER_HEIGHT],
-      outputRange: [0, -HEADER_HEIGHT + hp(10)],
-      extrapolate: 'clamp',
-    });
+  //   const headerTranslate = scrollY.interpolate({
+  //     inputRange: [0, HEADER_HEIGHT],
+  //     outputRange: [0, -HEADER_HEIGHT + hp(10)],
+  //     extrapolate: 'clamp',
+  //   });
 
-    const coverPhotoScale = scrollY.interpolate({
-      inputRange: [-100, 0],
-      outputRange: [1.2, 1],
-      extrapolate: 'clamp',
-    });
+  //   const coverPhotoScale = scrollY.interpolate({
+  //     inputRange: [-100, 0],
+  //     outputRange: [1.2, 1],
+  //     extrapolate: 'clamp',
+  //   });
 
-    return (
-      <Animated.View style={[styles.header, { transform: [{ translateY: headerTranslate }] }]}>
-        <Animated.Image
-          source={{ uri: user?.profile?.coverPhoto || 'https://picsum.photos/800/400' }}
-          style={[styles.coverPhoto, { transform: [{ scale: coverPhotoScale }] }]}
-        />
-        <Image
-          source={{ uri: user?.profile?.avatar || 'https://picsum.photos/200' }}
-          style={styles.avatar}
-        />
-      </Animated.View>
-    );
-  };
+  //   return (
+  //     <Animated.View style={[styles.header, { transform: [{ translateY: headerTranslate }] }]}>
+  //       <Animated.Image
+  //         source={{ uri: user?.profile?.coverPhoto || 'https://picsum.photos/800/400' }}
+  //         style={[styles.coverPhoto, { transform: [{ scale: coverPhotoScale }] }]}
+  //       />
+  //       <Image
+  //         source={{ uri: user?.profile?.avatar || 'https://picsum.photos/200' }}
+  //         style={styles.avatar}
+  //       />
+  //     </Animated.View>
+  //   );
+  // };
 
   const renderPostItem = ({ item }) => (
     <View style={[styles.postItem, { backgroundColor: colors.card, width: viewMode === 'grid' ? wp(45) : wp(90) }]}>
@@ -121,7 +127,7 @@ export default function Profile() {
         keyExtractor={(item, index) => index.toString()}
         ListHeaderComponent={
           <>
-            {renderHeader()}
+            {/* {renderHeader()} */}
             <ProfileDetails user={user} colors={colors} />
             <View style={styles.viewToggleContainer}>
               <TouchableOpacity onPress={toggleViewMode} style={styles.viewToggleButton}>
@@ -132,6 +138,7 @@ export default function Profile() {
             </View>
           </>
         }
+        // for post
         renderItem={renderPostItem}
         numColumns={viewMode === 'grid' ? 2 : 1}
         key={viewMode} // Forces re-render when viewMode changes

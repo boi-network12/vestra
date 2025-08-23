@@ -91,12 +91,12 @@ exports.protect = async (req, res, next) => {
       message = 'Token expired. Please log in again';
     } else if (err.name === 'JsonWebTokenError') {
       message = 'Invalid token. Please log in again';
-    } else if (err.message && err.message.includes('Rate limit')) {
+    } else if (err.msBeforeNext) {
       message = 'Too many authentication attempts. Try again later';
       status = 429;
     } else {
       // Handle unexpected errors
-      message = 'Authentication failed due to server error';
+      message = process.env.NODE_ENV === 'development' ? err.message : 'Authentication failed due to server error';
       status = 500;
     }
 

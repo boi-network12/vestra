@@ -8,7 +8,7 @@ import { AuthContext } from './AuthContext';
 export const UserContext = createContext();
 
 export const UserProvider = ({ children }) => {
-  const { user } = useContext(AuthContext);
+  const { fetchUserProfile } = useContext(AuthContext);
   const [userProfile, setUserProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -20,23 +20,6 @@ export const UserProvider = ({ children }) => {
 
   const hideAlert = () => {
     setAlert({ ...alert, visible: false });
-  };
-
-  const fetchUserProfile = async () => {
-    if (!user) return;
-    setIsLoading(true);
-    try {
-      const token = await AsyncStorage.getItem('token');
-      const response = await axios.get(`${API_URL}/api/users/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setUserProfile(response.data.data);
-      setError(null);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to fetch profile');
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   const updateProfile = async (profileData) => {

@@ -32,6 +32,7 @@ interface AuthContextType {
   resendVerificationCode: (data: { email: string }) => Promise<boolean>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
+  fetchUser: () => Promise<void>;
   linkAccount: (data: LoginData) => Promise<boolean>;
   switchAccount: (accountId: string) => Promise<boolean>;
   forgotPassword: (email: string) => Promise<boolean>;
@@ -134,6 +135,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       showAlert("Failed to fetch linked accounts", "error");
     }
   }, []);
+
+  const fetchUser = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setUser(null);
+        setLinkedAccounts([]);
+        return;
+      }
+      const response = await axios.get<{ success: boolean; data: User; message?: string }> (
+        `${API_URL}/api/users/me`,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      if (response.data.success){
+        setUser(response.data.data);
+      } else {
+        setUser(null);
+        showAlert(response.data.message || "Failed to fetch user data", "error");
+      }
+    } catch (err) {
+      const error = err as AxiosError<ApiErrorResponse>;
+      setUser(null);
+      showAlert(
+        error.response?.data?.message || "An error occurred while fetching user",
+        "error"
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  },[])
 
   const checkAuth = useCallback(
   async () => {
@@ -346,6 +380,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           username: response.data.data.username,
         });
         await fetchLinkedAccounts(response.data.data.token);
+        await fetchUser();
         showAlert(response.data.message || "Switched account successfully!", "success");
         return true;
       }
@@ -475,6 +510,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         forgotPassword,
         verifyResetOtp,
         resetPassword,
+        fetchUser
       }}
     >
       {children}

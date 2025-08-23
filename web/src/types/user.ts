@@ -3,27 +3,31 @@ export interface User {
   username?: string;
   email: string;
   phoneNumber?: string;
-  password?: string; // Only used when sending to backend
+  password?: string; 
   passwordChangedAt?: Date;
   passwordResetToken?: string;
   passwordResetExpires?: Date;
-  passwordResetOtp?: string; // Added from schema
-  passwordResetOtpExpires?: Date; // Added from schema
+  passwordResetOtp?: string;
+  passwordResetOtpExpires?: Date;
   profile?: {
     firstName?: string;
     lastName?: string;
     bio?: string;
+    links?: {
+      title?: string;
+      url?: string;
+    }[];
     avatar?: string;
     coverPhoto?: string;
     location?: {
       city?: string;
       country?: string;
-      coordinates?: [number, number]; // [longitude, latitude]
+      coordinates?: [number, number];
     };
     culturalBackground?: 'African' | 'African-American' | 'Caribbean' | 'Other' | 'Prefer not to say';
     interests?: string[];
-    dateOfBirth?: Date; // Added from schema
-    gender?: 'Male' | 'Female' | 'Other' | 'Prefer not to say'; // Added from schema
+    dateOfBirth?: Date;
+    gender?: 'Male' | 'Female' | 'Other' | 'Prefer not to say'; 
   };
   subscription?: {
     plan: 'Basic' | 'Premium' | 'Elite';
@@ -48,7 +52,7 @@ export interface User {
     lastActive?: Date;
     active?: boolean;
   }[];
-  followers?: string[]; // User IDs
+  followers?: string[]; 
   following?: string[];
   blockedUsers?: string[];
   linkedAccounts?: string[];
@@ -67,8 +71,8 @@ export interface User {
     mentions: boolean;
     follows: boolean;
   };
-  isDelete?: boolean; // Added from schema
-  deleteAt?: Date; // Added from schema
+  isDelete?: boolean;
+  deleteAt?: Date;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -83,3 +87,5 @@ export interface LoginData {
     country?: string;
   };
 }
+
+// types/user.ts

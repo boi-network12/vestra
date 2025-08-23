@@ -191,6 +191,23 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const fetchUserProfile = async () => {
+      if (!user) return;
+      setIsLoading(false);
+      try {
+        const token = await AsyncStorage.getItem('token');
+        const response = await axios.get(`${API_URL}/api/users/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setUser(response.data.data);
+        setError(null);
+      } catch (err) {
+        setError(err.response?.data?.message || 'Failed to fetch profile');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
   const switchAccount = async (accountId) => {
     setIsLoading(true);
     try {
@@ -210,6 +227,7 @@ export const AuthProvider = ({ children }) => {
           username: data.username,
         });
         await fetchLinkedAccounts(data.token);
+        await fetchUserProfile();
         showAlert('Switched account successfully!', 'success');
         return true;
       } else {
@@ -353,6 +371,7 @@ export const AuthProvider = ({ children }) => {
         hideAlert,
         linkAccount,
         switchAccount,
+        fetchUserProfile,
       }}
     >
       {children}
