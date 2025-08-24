@@ -30,7 +30,7 @@ export default function ProfileDetails({ user, colors }) {
               {fullName}
             </Text>
             <Text style={[styles.usernameText, { color: colors.subText }]}>
-              {user?.username}
+              @{user?.username}
             </Text>
           </View>
           <Image

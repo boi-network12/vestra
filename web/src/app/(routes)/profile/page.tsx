@@ -1,5 +1,6 @@
 "use client";
 import ProfileDetailsCard from '@/components/Profile/ProfileDetailsCard';
+import ProfileReminder from '@/components/Profile/ProfileReminder';
 import { useAuth } from '@/hooks/authHooks'
 import React, { useState } from 'react'
 
@@ -30,6 +31,7 @@ const Profile = () => {
 
         {/* Main Content */}
         <section className="flex flex-col">
+          <ProfileReminder user={user} />
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold text-gray-900">Posts</h3>
             <button

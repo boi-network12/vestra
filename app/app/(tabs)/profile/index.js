@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Image, Animated, Dimensions, Platform, RefreshControl, StatusBar as RNStatusBar, SafeAreaView, StyleSheet, View, TouchableOpacity, Text,
+  ActivityIndicator, Animated, Dimensions, Platform, RefreshControl, StatusBar as RNStatusBar, SafeAreaView, StyleSheet, View, TouchableOpacity, Text,
 } from 'react-native';
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from 'react-native-responsive-screen';
 import MenuModal from '../../../BottomSheet/MenuModal';
@@ -14,6 +14,8 @@ import { getThemeColors } from '../../../utils/theme';
 import ProfileDetails from '../../../components/Profile/ProfileDetails';
 import CustomRefreshControl from '../../../components/custom/CustomeRefreshCOntrol';
 import { useUser } from '../../../hooks/useUser';
+import PostItem from '../../../components/Profile/PostItem';
+import ProfileReminder from '../../../components/Profile/ProfileReminder';
 
 const { width } = Dimensions.get('window');
 const HEADER_HEIGHT = hp(25);
@@ -74,61 +76,43 @@ export default function Profile() {
     setViewMode(viewMode === 'list' ? 'grid' : 'list');
   };
 
-  // const renderHeader = () => {
-  //   if (!user) return null;
-
-  //   const headerTranslate = scrollY.interpolate({
-  //     inputRange: [0, HEADER_HEIGHT],
-  //     outputRange: [0, -HEADER_HEIGHT + hp(10)],
-  //     extrapolate: 'clamp',
-  //   });
-
-  //   const coverPhotoScale = scrollY.interpolate({
-  //     inputRange: [-100, 0],
-  //     outputRange: [1.2, 1],
-  //     extrapolate: 'clamp',
-  //   });
-
-  //   return (
-  //     <Animated.View style={[styles.header, { transform: [{ translateY: headerTranslate }] }]}>
-  //       <Animated.Image
-  //         source={{ uri: user?.profile?.coverPhoto || 'https://picsum.photos/800/400' }}
-  //         style={[styles.coverPhoto, { transform: [{ scale: coverPhotoScale }] }]}
-  //       />
-  //       <Image
-  //         source={{ uri: user?.profile?.avatar || 'https://picsum.photos/200' }}
-  //         style={styles.avatar}
-  //       />
-  //     </Animated.View>
-  //   );
-  // };
 
   const renderPostItem = ({ item }) => (
-    <View style={[styles.postItem, { backgroundColor: colors.card, width: viewMode === 'grid' ? wp(45) : wp(90) }]}>
-      <Image
-        source={{ uri: item?.thumbnail || 'https://picsum.photos/300' }}
-        style={styles.postThumbnail}
-      />
-      <Text style={[styles.postTitle, { color: colors.text }]}>{item?.title || 'Post Title'}</Text>
-    </View>
+    <PostItem
+        item={item}
+        colors={colors}
+        viewMode={viewMode}
+        user={user}
+    />
   );
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
+
+      {/* profileHeader */}
       <ProfileHeader
         colors={colors}
         user={user}
         openSwitchAccountModal={openSwitchAccountModal}
         openMenuModal={openMenuModal}
       />
+
+      {/* for Profile Details */}
       <Animated.FlatList
         data={Array.isArray(user?.posts) ? user.posts : []}
         keyExtractor={(item, index) => index.toString()}
         ListHeaderComponent={
           <>
-            {/* {renderHeader()} */}
+            {refreshing && (
+              <CustomRefreshControl colors={colors} refreshing={refreshing} />
+            )}
+
             <ProfileDetails user={user} colors={colors} />
+
+            {/* finish up */}
+            <ProfileReminder user={user} colors={colors} />
+            
             <View style={styles.viewToggleContainer}>
               <TouchableOpacity onPress={toggleViewMode} style={styles.viewToggleButton}>
                 <Text style={[styles.viewToggleText, { color: colors.primary }]}>
@@ -146,9 +130,10 @@ export default function Profile() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={colors.primary}
-            colors={[colors.primary]}
-            progressBackgroundColor={colors.card}
+            tintColor="transparent"
+            colors={["transparent"]}
+            progressViewOffset={hp(5)}
+            progressBackgroundColor="transparent"
           />
         }
         onScroll={Animated.event(
@@ -156,8 +141,15 @@ export default function Profile() {
           { useNativeDriver: true }
         )}
         contentContainerStyle={{ paddingBottom: hp(10) }}
-        ListEmptyComponent={<CustomRefreshControl refreshing={refreshing} />}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={[styles.noPostsText, { color: colors.subText }]}>
+              No posts yet
+            </Text>
+          </View>
+        }
       />
+
       
       <SwitchAccountModal
         modalizeRef={switchAccountModalRef}
@@ -241,4 +233,8 @@ const styles = StyleSheet.create({
     padding: wp(2),
     fontWeight: '500',
   },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  }
 });
