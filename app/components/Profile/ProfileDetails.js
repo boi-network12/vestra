@@ -15,7 +15,7 @@ const blurhash =
   };
 
 
-export default function ProfileDetails({ user, colors }) {
+export default function ProfileDetails({ user, colors, onClickEditBtn }) {
 
 
   const fullName = `${user?.profile?.firstName || ''} ${user?.profile?.lastName || ''}`;
@@ -73,6 +73,7 @@ export default function ProfileDetails({ user, colors }) {
           <View style={styles.btnContainer}>
             <TouchableOpacity
               style={[styles.btn, { backgroundColor: colors.background, borderColor: withOpacity(colors.subText, 0.4) }]}
+              onPress={onClickEditBtn}
             >
               <Text style={[styles.profileBtnText, { color: colors.text }]}>
                 Edit profile

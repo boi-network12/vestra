@@ -22,55 +22,58 @@ export const UserProvider = ({ children }) => {
     setAlert({ ...alert, visible: false });
   };
 
-  const updateProfile = async (profileData) => {
+  const updateProfile = async (profileData, avatarFile, coverPhotoFile) => {
     setIsLoading(true);
     try {
       const token = await AsyncStorage.getItem('token');
+      const formData = new FormData();
+
+      // Append text fields
+      Object.entries(profileData).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          if (key === "links" || key === 'location') {
+            formData.append(key, JSON.stringify(value));
+          } else {
+            formData.append(key, value);
+          }
+        }
+      });
+
+      // Append avatar file
+      if (avatarFile) {
+        formData.append('avatar', {
+          uri: avatarFile.uri,
+          name: avatarFile.fileName || `avatar.${avatarFile.type.split('/')[1]}`,
+          type: avatarFile.type,
+        });
+      }
+
+      // Append cover photo file
+      if (coverPhotoFile) {
+        formData.append('coverPhoto', {
+          uri: coverPhotoFile.uri,
+          name: coverPhotoFile.fileName || `coverPhoto.${coverPhotoFile.type.split('/')[1]}`,
+          type: coverPhotoFile.type,
+        });
+      }
+
       const response = await axios.put(
         `${API_URL}/api/users/me`,
-        profileData,
+        formData,
         {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { 
+             Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
         }
       );
       setUserProfile(response.data.data);
+      fetchUserProfile();
       setError(null);
       showAlert('Profile updated successfully!', 'success');
       return true;
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to update profile');
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const updateProfilePicture = async (image) => {
-    setIsLoading(true);
-    try {
-      const token = await AsyncStorage.getItem('token');
-      const formData = new FormData();
-      formData.append('avatar', {
-        uri: image.uri,
-        type: 'image/jpeg',
-        name: 'avatar.jpg',
-      });
-      const response = await axios.put(
-        `${API_URL}/api/users/me/avatar`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data',
-          },
-        }
-      );
-      setUserProfile({ ...userProfile, profile: { ...userProfile.profile, avatar: response.data.data.avatar } });
-      setError(null);
-      showAlert('Profile picture updated successfully!', 'success');
-      return true;
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to update profile picture');
       return false;
     } finally {
       setIsLoading(false);
@@ -85,7 +88,6 @@ export const UserProvider = ({ children }) => {
         error,
         fetchUserProfile,
         updateProfile,
-        updateProfilePicture,
         hideAlert
       }}
     >

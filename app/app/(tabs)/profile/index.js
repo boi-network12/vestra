@@ -16,6 +16,7 @@ import CustomRefreshControl from '../../../components/custom/CustomeRefreshCOntr
 import { useUser } from '../../../hooks/useUser';
 import PostItem from '../../../components/Profile/PostItem';
 import ProfileReminder from '../../../components/Profile/ProfileReminder';
+import EditProfile from '../../../components/Profile/Modal/EditProfile';
 
 const { width } = Dimensions.get('window');
 const HEADER_HEIGHT = hp(25);
@@ -23,7 +24,7 @@ const AVATAR_SIZE = hp(10);
 
 export default function Profile() {
   const { user, isLoading, linkedAccounts, switchAccount, linkAccount } = useAuth();
-  const { fetchUserProfile } = useUser();
+  const { fetchUserProfile, updateProfile } = useUser();
   const { isDark } = useTheme();
   const colors = getThemeColors(isDark);
   const switchAccountModalRef = useRef(null);
@@ -31,6 +32,8 @@ export default function Profile() {
   const scrollY = useRef(new Animated.Value(0)).current;
   const [refreshing, setRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState('list');
+
+  const editProfileRef = useRef(null);
 
   const openSwitchAccountModal = useCallback(() => {
     switchAccountModalRef.current?.open();
@@ -86,6 +89,13 @@ export default function Profile() {
     />
   );
 
+  // to open user edit profile Modal
+  const handleEditProfileClick = () => {
+    if (!user) return null;
+    // Open edit profile modal
+    editProfileRef.current?.open();
+  }
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
@@ -108,7 +118,11 @@ export default function Profile() {
               <CustomRefreshControl colors={colors} refreshing={refreshing} />
             )}
 
-            <ProfileDetails user={user} colors={colors} />
+            <ProfileDetails 
+               user={user} 
+               colors={colors} 
+               onClickEditBtn={handleEditProfileClick}
+            />
 
             {/* finish up */}
             <ProfileReminder user={user} colors={colors} />
@@ -160,7 +174,18 @@ export default function Profile() {
         switchAccount={switchAccount}
         linkAccount={linkAccount}
       />
-      <MenuModal modalizeRef={menuModalRef} colors={colors} closeModal={closeMenuModal} />
+      <MenuModal 
+          modalizeRef={menuModalRef} 
+          colors={colors} 
+          closeModal={closeMenuModal} 
+      />
+      {/* modal for edit profile  */}
+      <EditProfile
+         ref={editProfileRef}
+         colors={colors}
+         user={user}
+         updateProfile={updateProfile}
+      />
     </SafeAreaView>
   );
 }

@@ -7,6 +7,7 @@ interface RightSidebarProps {
 }
 
 export default function RightSidebar({ trends }: RightSidebarProps) {
+  
   return (
     <aside className="hidden lg:block w-80 bg-white shadow-md p-4 fixed right-0 h-full">
       <h2 className="text-lg font-semibold mb-4">Trends</h2>

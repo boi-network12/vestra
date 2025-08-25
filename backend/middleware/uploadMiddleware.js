@@ -1,14 +1,17 @@
-const cloudinary = require('cloudinary').v2;
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const { S3Client, PutObjectCommand, DeleteObjectCommand } = require("@aws-sdk/client-s3")
 const multer = require('multer');
 const path = require('path');
 
-// Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+const s3Client = new S3Client({
+  region: process.env.B2_REGION,
+  endpoint: process.env.B2_ENDPOINT,
+  credentials: {
+    accessKeyId: process.env.B2_KEY_ID,
+    secretAccessKey: process.env.B2_APPLICATION_KEY,
+  },
 });
+
+
 
 // Define allowed media formats
 const ALLOWED_IMAGE_TYPES = [
@@ -38,21 +41,9 @@ const ALLOWED_VIDEO_TYPES = [
 
 const ALLOWED_FILE_TYPES = [...ALLOWED_IMAGE_TYPES, ...ALLOWED_VIDEO_TYPES];
 
-// Configure Cloudinary storage for multer
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: async (req, file) => {
-    const isVideo = file.mimetype.startsWith('video');
-    return {
-      folder: `social_media/${isVideo ? 'videos' : 'images'}`,
-      resource_type: isVideo ? 'video' : 'image',
-      public_id: `${req.user._id}_${Date.now()}_${path.parse(file.originalname).name}`,
-      transformation: isVideo
-        ? [{ quality: 'auto', fetch_format: 'auto' }]
-        : [{ width: 1080, height: 1080, crop: 'limit', quality: 'auto', fetch_format: 'auto' }],
-    };
-  },
-});
+// Configure Multer storage (in-memory for S3 upload)
+const storage = multer.memoryStorage();
+
 
 // File filter for allowed types
 const fileFilter = (req, file, cb) => {
@@ -80,7 +71,7 @@ const upload = multer({
 // Upload middleware
 exports.uploadMedia = (fieldName) => {
   return (req, res, next) => {
-    upload.single(fieldName)(req, res, (err) => {
+    upload.single(fieldName)(req, res, async (err) => {
       if (err instanceof multer.MulterError) {
         return res.status(400).json({
           success: false,
@@ -95,9 +86,34 @@ exports.uploadMedia = (fieldName) => {
 
       // Attach Cloudinary response to req.file
       if (req.file) {
-        req.file.url = req.file.path; // Cloudinary URL
-        req.file.public_id = req.file.filename; // Cloudinary public_id
-        req.file.resource_type = req.file.mimetype.startsWith('video') ? 'video' : 'image';
+        try {
+          const isVideo = req.file.mimetype.startsWith('video');
+          const folder = `social_media/${isVideo ? 'videos' : 'images'}`;
+          const publicId = `${req.user._id}_${Date.now()}_${path.parse(req.file.originalname).name}`;
+
+          const params = {
+            Bucket: process.env.B2_BUCKET_NAME,
+            Key: `${folder}/${publicId}`,
+            Body: req.file.buffer,
+            ContentType: req.file.mimetype,
+          };
+
+          const command = new PutObjectCommand(params);
+          await s3Client.send(command);
+
+          // Generate public URL
+          const url = `https://${process.env.B2_BUCKET_NAME}.${process.env.B2_ENDPOINT}/${folder}/${publicId}`;
+
+          req.file.url = url;
+          req.file.public_id = publicId;
+          req.file.resource_type = isVideo ? 'video' : 'image';
+        } catch (error) {
+          console.error('Backblaze upload error:', uploadErr);
+          return res.status(500).json({
+            success: false,
+            message: 'Failed to upload file to Backblaze',
+          });
+        }
       }
 
       next();
@@ -108,10 +124,17 @@ exports.uploadMedia = (fieldName) => {
 // Delete media from Cloudinary
 exports.deleteMedia = async (publicId, resourceType = 'image') => {
   try {
-    await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
+    const folder = `social_media/${resourceType}s`;
+    const params = {
+      Bucket: process.env.B2_BUCKET_NAME,
+      Key: `${folder}/${publicId}`,
+    };
+
+    const command = new DeleteObjectCommand(params);
+    await s3Client.send(command);
     return true;
   } catch (err) {
-    console.error('Cloudinary delete error:', err);
+    console.error('Backblaze delete error:', err);
     throw new Error('Failed to delete media');
   }
 };

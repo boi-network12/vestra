@@ -20,6 +20,7 @@ const trends: Trend[] = [
 
 const noSidebarRoutes = ["/settings"]
 const noTabNeeded = ["/settings"]
+const noRightSidebar = ["/profile"]
 
 export default function ProtectedLayout({ children }: { children: ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -31,7 +32,8 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
   };
 
   const hideSidebar = noSidebarRoutes?.includes(pathname);
-  const hideMobileNavbar = noTabNeeded?.includes(pathname)
+  const hideMobileNavbar = noTabNeeded?.includes(pathname);
+  const hideRightSidebar = noRightSidebar?.includes(pathname);
 
   return (
     <ProtectedRoute>
@@ -60,7 +62,9 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
           />
         )}
         <MainContent>{children}</MainContent>
-        <RightSidebar trends={trends} />
+
+        {!hideRightSidebar && <RightSidebar trends={trends} />}
+        
         {!hideMobileNavbar && (
            <MobileNav navItems={mobileNavItems} />
         )}
