@@ -1,12 +1,16 @@
 "use client";
+import EditProfile from '@/components/Profile/Modal/EditProfile';
 import ProfileDetailsCard from '@/components/Profile/ProfileDetailsCard';
 import ProfileReminder from '@/components/Profile/ProfileReminder';
 import { useAuth } from '@/hooks/authHooks'
+import { useUser } from '@/hooks/userHooks';
 import React, { useState } from 'react'
 
 const Profile = () => {
   const { user, isLoading } = useAuth();
+  const { updateProfile } = useUser();
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const toggleViewMode = () => {
     setViewMode(prevMode => prevMode === 'list' ? 'grid' : 'list');
@@ -14,11 +18,13 @@ const Profile = () => {
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex-1 flex items-center justify-center min-h-screen bg-gray-50"> 
         <div className="animate-spin h-10 w-10 border-4 border-t-transparent border-blue-500 rounded-full"></div>
       </div>
     );
   }
+
+  
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -26,7 +32,10 @@ const Profile = () => {
         
         {/* Profile Sidebar */}
         <aside className="bg-white rounded-2xl shadow p-6 h-fit">
-          <ProfileDetailsCard user={user} />
+          <ProfileDetailsCard 
+             user={user} 
+             handleEditBtnClick={() => setIsEditModalOpen(true)}
+          />
         </aside>
 
         {/* Main Content */}
@@ -53,6 +62,15 @@ const Profile = () => {
         </section>
 
       </main>
+
+      {/* here will be a modal that will open when the edit button is clicked */}
+      {isEditModalOpen && (
+        <EditProfile
+          user={user}
+          onSave={updateProfile}
+          onClose={() => setIsEditModalOpen(false)}
+        />
+      )}
     </div>
   );
 }

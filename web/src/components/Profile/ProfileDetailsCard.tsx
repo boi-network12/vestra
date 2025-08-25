@@ -6,9 +6,10 @@ import React, { FC } from 'react';
 
 interface ProfileDetailsCardProps {
   user: User | null;
+  handleEditBtnClick: () => void;
 }
 
-const ProfileDetailsCard: FC<ProfileDetailsCardProps> = ({ user }) => {
+const ProfileDetailsCard: FC<ProfileDetailsCardProps> = ({ user, handleEditBtnClick }) => {
   if (!user) return null;
 
   const fullName = `${user?.profile?.firstName || ''} ${user?.profile?.lastName || ''}`;
@@ -58,6 +59,7 @@ const ProfileDetailsCard: FC<ProfileDetailsCardProps> = ({ user }) => {
       <div className="flex gap-3 mt-6 w-full">
         <button
           className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-sm font-medium bg-white hover:bg-gray-50"
+          onClick={handleEditBtnClick}
         >
           Edit profile
         </button>

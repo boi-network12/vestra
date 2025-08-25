@@ -17,6 +17,7 @@ import { useUser } from '../../../hooks/useUser';
 import PostItem from '../../../components/Profile/PostItem';
 import ProfileReminder from '../../../components/Profile/ProfileReminder';
 import EditProfile from '../../../components/Profile/Modal/EditProfile';
+import InAppBrowser from '../../../browser/InAppBrowser';
 
 const { width } = Dimensions.get('window');
 const HEADER_HEIGHT = hp(25);
@@ -32,6 +33,8 @@ export default function Profile() {
   const scrollY = useRef(new Animated.Value(0)).current;
   const [refreshing, setRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState('list');
+  const [isBrowserVisible, setIsBrowserVisible] = useState(false);
+  const [browserUrl, setBrowserUrl] = useState(''); 
 
   const editProfileRef = useRef(null);
 
@@ -96,6 +99,12 @@ export default function Profile() {
     editProfileRef.current?.open();
   }
 
+  // Function to open the in-app browser
+  const openInAppBrowser = (url) => {
+    setBrowserUrl(url);
+    setIsBrowserVisible(true);
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
@@ -122,6 +131,9 @@ export default function Profile() {
                user={user} 
                colors={colors} 
                onClickEditBtn={handleEditProfileClick}
+               browserUrl={browserUrl}
+               isBrowserVisible={isBrowserVisible}
+               openInAppBrowser={openInAppBrowser}
             />
 
             {/* finish up */}
@@ -185,6 +197,14 @@ export default function Profile() {
          colors={colors}
          user={user}
          updateProfile={updateProfile}
+      />
+
+      {/* InApp modal */}
+      <InAppBrowser
+        isVisible={isBrowserVisible}
+        url={browserUrl}
+        colors={colors}
+        onClose={() => setIsBrowserVisible(false)}
       />
     </SafeAreaView>
   );

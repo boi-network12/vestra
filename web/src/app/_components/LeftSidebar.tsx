@@ -68,7 +68,7 @@ export default function LeftSidebar({
             <div className='flex items-center justify-between  '>
               {user?.profile?.avatar ? (
                 <Image
-                  src={user.profile.avatar}
+                  src={user.profile.avatar || ""}
                   alt={`${user.profile.firstName || 'User'}'s avatar`}
                   width={40}
                   height={40}

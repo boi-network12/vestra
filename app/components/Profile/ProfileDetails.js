@@ -15,11 +15,12 @@ const blurhash =
   };
 
 
-export default function ProfileDetails({ user, colors, onClickEditBtn }) {
+export default function ProfileDetails({ user, colors, onClickEditBtn, openInAppBrowser }) {
 
 
   const fullName = `${user?.profile?.firstName || ''} ${user?.profile?.lastName || ''}`;
   const dynamicFontSize = fullName.length > 20 ? hp(2) : hp(2.5);
+
 
   return (
     user && (
@@ -58,7 +59,13 @@ export default function ProfileDetails({ user, colors, onClickEditBtn }) {
             
             {user?.profile?.links?.[0]?.title && user?.profile?.links?.[0]?.url ? (
                 <TouchableOpacity
-                  onPress={() => Linking.openURL(user.profile.links[0].url)}
+                  onPress={() => {
+                    if (openInAppBrowser) {
+                      openInAppBrowser(user.profile.links[0].url);
+                    } else {
+                      console.warn('InAppBrowser is not available');
+                    }
+                  }}
                 >
                   <Text style={{ color: colors.subText, fontSize: hp(1.6) }}>
                     {user.profile.links[0].title}
