@@ -192,8 +192,8 @@ exports.updateUserDetails = async (req, res) => {
 
     res.json({ success: true, data: user });
   } catch (err) {
-    console.error('Update user details error:', err);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error('Update user details error:', err.message, err.stack);
+    res.status(500).json({ success: false, message: err.message || 'Server error' });
   }
 };
 

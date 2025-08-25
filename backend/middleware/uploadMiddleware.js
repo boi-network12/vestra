@@ -1,16 +1,23 @@
 const { S3Client, PutObjectCommand, DeleteObjectCommand } = require("@aws-sdk/client-s3")
 const multer = require('multer');
+const { v2: cloudinary } = require('cloudinary');
 const path = require('path');
 
-const s3Client = new S3Client({
-  region: process.env.B2_REGION,
-  endpoint: process.env.B2_ENDPOINT,
-  credentials: {
-    accessKeyId: process.env.B2_KEY_ID,
-    secretAccessKey: process.env.B2_APPLICATION_KEY,
-  },
-});
+// const s3Client = new S3Client({
+//   region: process.env.B2_REGION,
+//   endpoint: process.env.B2_ENDPOINT,
+//   credentials: {
+//     accessKeyId: process.env.B2_KEY_ID,
+//     secretAccessKey: process.env.B2_APPLICATION_KEY,
+//   },
+// });
 
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 
 // Define allowed media formats
@@ -69,9 +76,11 @@ const upload = multer({
 });
 
 // Upload middleware
-exports.uploadMedia = (fieldName) => {
+exports.uploadMedia = (fieldNames) => {
   return (req, res, next) => {
-    upload.single(fieldName)(req, res, async (err) => {
+    upload.fields(
+      fieldNames.map((name) => ({ name, maxCount: 1 }))
+    )(req, res, async (err) => {
       if (err instanceof multer.MulterError) {
         return res.status(400).json({
           success: false,
@@ -84,39 +93,46 @@ exports.uploadMedia = (fieldName) => {
         });
       }
 
-      // Attach Cloudinary response to req.file
-      if (req.file) {
+
+      if (req.files) {
         try {
-          const isVideo = req.file.mimetype.startsWith('video');
-          const folder = `social_media/${isVideo ? 'videos' : 'images'}`;
-          const publicId = `${req.user._id}_${Date.now()}_${path.parse(req.file.originalname).name}`;
+          for (const fieldName of fieldNames) {
+            if (req.files[fieldName]) {
+              const file = req.files[fieldName][0];
+              const isVideo = file.mimetype.startsWith('video');
+              const folder = `social_media/${isVideo ? 'videos' : 'images'}`;
+              const publicId = `${req.user._id}_${Date.now()}_${path.parse(file.originalname).name}`;
 
-          const params = {
-            Bucket: process.env.B2_BUCKET_NAME,
-            Key: `${folder}/${publicId}`,
-            Body: req.file.buffer,
-            ContentType: req.file.mimetype,
-          };
-
-          const command = new PutObjectCommand(params);
-          await s3Client.send(command);
-
-          // Generate public URL
-          const url = `https://${process.env.B2_BUCKET_NAME}.${process.env.B2_ENDPOINT}/${folder}/${publicId}`;
-
-          req.file.url = url;
-          req.file.public_id = publicId;
-          req.file.resource_type = isVideo ? 'video' : 'image';
+              await new Promise((resolve, reject) => {
+                cloudinary.uploader.upload_stream(
+                  {
+                    folder: folder,
+                    public_id: publicId,
+                    resource_type: isVideo ? 'video' : 'image',
+                  },
+                  (error, result) => {
+                    if (error) {
+                      return reject(new Error('Failed to upload file to Cloudinary'));
+                    }
+                    file.url = result.secure_url;
+                    file.public_id = publicId;
+                    file.resource_type = isVideo ? 'video' : 'image';
+                    resolve();
+                  }
+                ).end(file.buffer);
+              });
+            }
+          }
+          next();
         } catch (error) {
-          console.error('Backblaze upload error:', uploadErr);
           return res.status(500).json({
             success: false,
-            message: 'Failed to upload file to Backblaze',
+            message: 'Failed to upload file to Cloudinary',
           });
         }
+      } else {
+        next();
       }
-
-      next();
     });
   };
 };

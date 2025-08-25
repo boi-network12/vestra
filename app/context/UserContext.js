@@ -73,6 +73,7 @@ export const UserProvider = ({ children }) => {
       showAlert('Profile updated successfully!', 'success');
       return true;
     } catch (err) {
+      console.error('Update profile error:', err.response?.data, err);
       setError(err.response?.data?.message || 'Failed to update profile');
       return false;
     } finally {

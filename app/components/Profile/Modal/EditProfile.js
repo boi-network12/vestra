@@ -1,7 +1,7 @@
 // EditProfile.js
+import React, { forwardRef, useImperativeHandle, useState, useRef, useEffect } from 'react';
 import { AntDesign, SimpleLineIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import React, { forwardRef, useImperativeHandle, useState, useRef, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -17,9 +17,9 @@ import {
   Keyboard,
   ActivityIndicator
 } from 'react-native';
-import { heightPercentageToDP as hp, widthPercentageToDP as wp } from 'react-native-responsive-screen';
+import { heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { useAlert } from '../../../context/AlertContext';
-import { launchImageLibrary } from 'react-native-image-picker';
+import * as ImagePicker from "expo-image-picker";
 
 
 const EditProfile = forwardRef(({ colors, user, updateProfile }, ref) => {
@@ -78,30 +78,57 @@ const EditProfile = forwardRef(({ colors, user, updateProfile }, ref) => {
   };
 
   const checkPhotoPermission = async () => {
-    
-  }
+    try {
+      const { status } = await ImagePicker.getMediaLibraryPermissionsAsync();
+      if (status === 'granted') {
+        return true;
+      }
+
+      const { status: newStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (newStatus === 'granted') {
+        return true;
+      } else {
+        showAlert('Photo library permission is required to select images. Please enable it in settings.', 'error');
+        return false;
+      }
+    } catch (error) {
+      showAlert('Error checking permissions: ' + error.message, 'error');
+      console.error('Permission check error:', error);
+      return false;
+    }
+  };
 
   const selectImage = async (type) => {
-    const options = {
-      mediaType: 'photo',
-      maxWidth: 1080,
-      maxHeight: 1080,
-      quality: 0.8,
-    };
+    const hasPermission = await checkPhotoPermission();
+    if (!hasPermission) return;
 
     try {
-      const result = await launchImageLibrary(options);
-      if (!result.didCancel && result.assets) {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+        exif: true
+      });
+
+      if (!result.canceled && result.assets) {
         const file = result.assets[0];
+        console.log('Selected Image:', file);
+
+        const formattedFile = {
+          uri: file.uri,
+          type: file.mimeType || `image/${file.uri.split('.').pop()}`,
+          fileName: file.fileName || `image-${Date.now()}.${file.uri.split('.').pop()}`
+        };
         if (type === 'avatar') {
-          setAvatarFile(file);
+          setAvatarFile(formattedFile);
         } else {
-          setCoverPhotoFile(file);
+          setCoverPhotoFile(formattedFile);
         }
       }
     } catch (error) {
-      showAlert('Error selecting image', 'error');
-      throw new Error("Error selecting image", error)
+      showAlert('Error selecting image: ' + error.message, 'error');
+      console.error('Image selection error:', error);
     }
   }
 
