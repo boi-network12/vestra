@@ -1,16 +1,18 @@
 "use client";
 import EditProfile from '@/components/Profile/Modal/EditProfile';
+import ShareProfile, { ShareProfileRef } from '@/components/Profile/Modal/ShareProfile';
 import ProfileDetailsCard from '@/components/Profile/ProfileDetailsCard';
 import ProfileReminder from '@/components/Profile/ProfileReminder';
 import { useAuth } from '@/hooks/authHooks'
 import { useUser } from '@/hooks/userHooks';
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 
 const Profile = () => {
   const { user, isLoading } = useAuth();
   const { updateProfile } = useUser();
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const shareProfileRef = useRef<ShareProfileRef>(null);
 
   const toggleViewMode = () => {
     setViewMode(prevMode => prevMode === 'list' ? 'grid' : 'list');
@@ -35,6 +37,7 @@ const Profile = () => {
           <ProfileDetailsCard 
              user={user} 
              handleEditBtnClick={() => setIsEditModalOpen(true)}
+             handleShareBtnClick={() => shareProfileRef.current?.open()}
           />
         </aside>
 
@@ -71,6 +74,12 @@ const Profile = () => {
           onClose={() => setIsEditModalOpen(false)}
         />
       )}
+
+      {/* share profile modal */}
+      <ShareProfile
+         ref={shareProfileRef}
+         user={user}
+      />
     </div>
   );
 }

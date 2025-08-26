@@ -30,12 +30,12 @@ app.use(
   })
 );
 
-// Rate Limiting
-const limiter = rateLimit({
-  windowMs: process.env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000, 
-  max: process.env.RATE_LIMIT_MAX || 10000,
-});
-app.use(limiter);
+// // Rate Limiting
+// const limiter = rateLimit({
+//   windowMs: process.env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000, 
+//   max: process.env.RATE_LIMIT_MAX || 10000,
+// });
+// app.use(limiter);
 
 
 // compression

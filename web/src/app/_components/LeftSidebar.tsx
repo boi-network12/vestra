@@ -67,13 +67,14 @@ export default function LeftSidebar({
           <div className='bg-white cursor-pointe rounded p-3'>
             <div className='flex items-center justify-between  '>
               {user?.profile?.avatar ? (
-                <Image
-                  src={user.profile.avatar || ""}
-                  alt={`${user.profile.firstName || 'User'}'s avatar`}
-                  width={40}
-                  height={40}
-                  className="rounded-full object-cover"
-                />
+                <div className="relative w-16 h-16 rounded-full overflow-hidden">
+                  <Image
+                    src={user.profile.avatar || ""}
+                    alt={`${user.profile.firstName || 'User'}'s avatar`}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
               ) : (
                 <div className="w-10 h-10 flex items-center justify-center bg-gray-500 text-white font-bold rounded-full">
                   {firstLetter}

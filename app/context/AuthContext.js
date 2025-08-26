@@ -144,6 +144,7 @@ export const AuthProvider = ({ children }) => {
         setError(null);
         showAlert('Login successful!', 'success');
         await fetchLinkedAccounts(data.token);
+        await fetchUserProfile();
         return true;
       } else {
         throw new Error('Login failed');

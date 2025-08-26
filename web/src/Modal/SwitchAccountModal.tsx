@@ -125,13 +125,14 @@ const SwitchAccountModal = ({
                   disabled={isLoading || submitting}
                 >
                   {acc.profile?.avatar ? (
-                    <Image
-                      src={acc.profile.avatar}
-                      width={36}
-                      height={36}
-                      alt="avatar"
-                      className="rounded-full object-cover"
-                    />
+                    <div className="relative w-9 h-9 rounded-full overflow-hidden">
+                      <Image
+                        src={acc.profile.avatar}
+                        alt="avatar"
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
                   ) : (
                     <div className="w-9 h-9 rounded-full flex items-center justify-center bg-gray-600 text-white font-bold">
                       {acc.username?.charAt(0)?.toUpperCase()}

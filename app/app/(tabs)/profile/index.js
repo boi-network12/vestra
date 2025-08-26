@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator, Animated, Dimensions, Platform, RefreshControl, StatusBar as RNStatusBar, SafeAreaView, StyleSheet, View, TouchableOpacity, Text,
 } from 'react-native';
@@ -18,6 +18,8 @@ import PostItem from '../../../components/Profile/PostItem';
 import ProfileReminder from '../../../components/Profile/ProfileReminder';
 import EditProfile from '../../../components/Profile/Modal/EditProfile';
 import InAppBrowser from '../../../browser/InAppBrowser';
+import ShareProfile from '../../../components/Profile/Modal/ShareProfile';
+import * as ScreenCapture from 'expo-screen-capture';
 
 const { width } = Dimensions.get('window');
 const HEADER_HEIGHT = hp(25);
@@ -38,6 +40,8 @@ export default function Profile() {
 
   const editProfileRef = useRef(null);
 
+  const shareProfileRef = useRef(null);
+
   const openSwitchAccountModal = useCallback(() => {
     switchAccountModalRef.current?.open();
   }, []);
@@ -52,6 +56,22 @@ export default function Profile() {
 
   const closeMenuModal = useCallback(() => {
     menuModalRef.current?.close();
+  }, []);
+  
+  useEffect(() => {
+    // prevent screen shot
+   ScreenCapture.preventScreenCaptureAsync();
+
+    // or listen for screenshot attempts
+    const subscription = ScreenCapture.addScreenshotListener(() => {
+      console.log('📸 Screenshot detected!');
+      shareProfileRef.current?.open();
+    });
+
+    return () => {
+      subscription.remove();
+      ScreenCapture.allowScreenCaptureAsync();
+    }
   }, []);
 
   if (isLoading) {
@@ -99,6 +119,12 @@ export default function Profile() {
     editProfileRef.current?.open();
   }
 
+  // to open share modal
+  const handleShareProfileClick = () => {
+    if (!user) return null;
+    shareProfileRef.current?.open();
+  }
+
   // Function to open the in-app browser
   const openInAppBrowser = (url) => {
     setBrowserUrl(url);
@@ -131,6 +157,7 @@ export default function Profile() {
                user={user} 
                colors={colors} 
                onClickEditBtn={handleEditProfileClick}
+               onClickShareBtn={handleShareProfileClick}
                browserUrl={browserUrl}
                isBrowserVisible={isBrowserVisible}
                openInAppBrowser={openInAppBrowser}
@@ -197,6 +224,13 @@ export default function Profile() {
          colors={colors}
          user={user}
          updateProfile={updateProfile}
+      />
+
+      {/* Share profile open modal */}
+      <ShareProfile
+          ref={shareProfileRef}
+          colors={colors}
+          user={user}
       />
 
       {/* InApp modal */}

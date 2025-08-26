@@ -18,7 +18,7 @@ export default function Index() {
 
     useEffect(() => {
         if (!isLoading && user) {
-            router.replace('home')
+            router.replace('/home')
         }
     }, [isLoading, user])
 

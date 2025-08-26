@@ -185,7 +185,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
       if (response.data.success) {
         setUser(response.data.data);
-        fetchUser();
         await fetchLinkedAccounts(token);
       } else {
         setUser(null);

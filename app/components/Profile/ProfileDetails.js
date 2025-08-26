@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from 'react-native-responsive-screen';
 import { Ionicons } from '@expo/vector-icons'; // Assuming you're using expo-vector-icons
 import { Image } from 'expo-image';
@@ -15,7 +15,7 @@ const blurhash =
   };
 
 
-export default function ProfileDetails({ user, colors, onClickEditBtn, openInAppBrowser }) {
+export default function ProfileDetails({ user, colors, onClickEditBtn, openInAppBrowser, onClickShareBtn }) {
 
 
   const fullName = `${user?.profile?.firstName || ''} ${user?.profile?.lastName || ''}`;
@@ -88,6 +88,7 @@ export default function ProfileDetails({ user, colors, onClickEditBtn, openInApp
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.btn, { backgroundColor: colors.background, borderColor: withOpacity(colors.subText, 0.4) }]}
+              onPress={onClickShareBtn}
             >
               <Text style={[styles.profileBtnText, { color: colors.text }]}>
                 Share profile

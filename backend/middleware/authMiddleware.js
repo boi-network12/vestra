@@ -10,7 +10,7 @@ const authLimiter = new RateLimiterMemory({
 exports.protect = async (req, res, next) => {
   try {
     // Rate limit check
-    await authLimiter.consume(req.ip);
+    // await authLimiter.consume(req.ip);
 
     // Get token from header or cookies
     let token;
