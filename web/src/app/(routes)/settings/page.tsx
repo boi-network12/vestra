@@ -8,6 +8,8 @@ import {
   SettingsItem,
   SettingsSection,
 } from "@/constant/SettingsSections";
+import { useAuth } from "@/hooks/authHooks";
+import { useUser } from "@/hooks/userHooks";
 
 const SearchHeader: React.FC<{
   searchText: string;
@@ -28,6 +30,8 @@ const SearchHeader: React.FC<{
 
 const Settings = () => {
   const router = useRouter();
+  const { user, logout } = useAuth();
+  const { updateProfile, checkUsername, checkEmail, checkPhone, updateUser } = useUser();
   const [searchText, setSearchText] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedItem, setSelectedItem] = useState<SettingsItem | null>(null);
@@ -71,7 +75,10 @@ const Settings = () => {
         </div>
 
         {/* Search */}
-        <SearchHeader searchText={searchText} setSearchText={setSearchText} />
+        <SearchHeader 
+            searchText={searchText} 
+            setSearchText={setSearchText} 
+         />
 
         {/* List */}
         <div className="px-4 py-2 sm:px-6 md:px-8 overflow-y-auto">
@@ -104,10 +111,18 @@ const Settings = () => {
       </div>
 
       {/* Content Area for Desktop */}
-      <div className="hidden lg:flex flex-1 p-6">
+      <div className="hidden lg:flex flex-1 p-6 w-full">
         {selectedItem ? (
           selectedItem.component ? (
-            <selectedItem.component />
+            <selectedItem.component 
+              user={user}
+              updateProfile={updateProfile}
+              checkUsername={checkUsername}
+              checkEmail={checkEmail}
+              checkPhone={checkPhone}
+              updateUser={updateUser}
+              logout={logout}
+            />
           ) : (
             <p className="text-gray-900">No content available</p>
           )
@@ -118,7 +133,7 @@ const Settings = () => {
 
       {/* Mobile Modal */}
       {modalVisible && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4 lg:hidden">
+        <div className="fixed inset-0 bg-black/80 bg-opacity-50 flex items-center justify-center z-50 px-4 lg:hidden">
           <div className="w-full max-w-2xl bg-white rounded-lg shadow-lg">
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
               <button
@@ -134,7 +149,15 @@ const Settings = () => {
             </div>
             <div className="p-4">
               {selectedItem && selectedItem.component ? (
-                <selectedItem.component />
+                <selectedItem.component 
+                    user={user}
+                    updateProfile={updateProfile}
+                    checkUsername={checkUsername}
+                    checkEmail={checkEmail}
+                    checkPhone={checkPhone}
+                    updateUser={updateUser}
+                    logout={logout}
+                />
               ) : (
                 <p className="text-gray-900">No content available</p>
               )}

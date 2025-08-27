@@ -18,6 +18,8 @@ import { getThemeColors } from '../../../utils/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { SETTINGS_SECTIONS } from '../../../constant/SeatingsSection'
+import { useAuth } from '../../../hooks/useAuth';
+import { useUser } from '../../../hooks/useUser';
 
 // ✅ Separate search bar so it won't re-mount and close the keyboard
 const SearchHeaderComponent = ({ searchText, setSearchText, colors }) => (
@@ -46,6 +48,8 @@ const SearchHeader = React.memo(SearchHeaderComponent);
 
 export default function Settings() {
   const { isDark } = useTheme();
+  const { user, logout } = useAuth();
+  const { updateProfile, checkUsername, checkEmail, checkPhone } = useUser();
   const colors = getThemeColors(isDark);
   const router = useRouter();
   const [searchText, setSearchText] = useState('');
@@ -141,7 +145,6 @@ export default function Settings() {
         <SafeAreaView
             style={{
               flex: 1,
-              // paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight : 0,
               backgroundColor: colors.background
             }}
         >
@@ -152,7 +155,15 @@ export default function Settings() {
           />
           <View style={styles.modalContainer}>
             {selectedItem && selectedItem.component ? (
-              <selectedItem.component colors={colors} />
+              <selectedItem.component 
+                  colors={colors} 
+                  user={user} 
+                  updateProfile={updateProfile}
+                  checkUsername={checkUsername}
+                  checkEmail={checkEmail}
+                  checkPhone={checkPhone}
+                  logout={logout}
+              />
             ) : (
               <Text style={{ color: colors.text }}>No content available</Text>
             )}

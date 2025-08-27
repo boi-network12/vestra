@@ -22,6 +22,70 @@ export const UserProvider = ({ children }) => {
     setAlert({ ...alert, visible: false });
   };
 
+  // === Validation functions ===
+  const checkUsername = async (username) => {
+    if (!username) {
+      return { success: false, available: false, message: 'Username is required' };
+    }
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const res = await axios.get(`${API_URL}/api/users/check-username`, {
+        params: { username },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return res.data;
+    } catch (err) {
+      console.error('Username check error:', err.response?.data || err);
+      return {
+        success: false,
+        available: false,
+        message: err.response?.data?.message || 'Error checking username',
+      };
+    }
+  };
+
+  const checkEmail = async (email) => {
+    if (!email) {
+      return { success: false, available: false, message: 'Email is required' };
+    }
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const res = await axios.get(`${API_URL}/api/users/check-email`, {
+        params: { email },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return res.data;
+    } catch (err) {
+      console.error('Email check error:', err.response?.data || err);
+      return {
+        success: false,
+        available: false,
+        message: err.response?.data?.message || 'Error checking email',
+      };
+    }
+  };
+
+  const checkPhone = async (phoneNumber) => {
+    if (!phoneNumber) {
+      return { success: false, available: false, message: 'Phone is required' };
+    }
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const res = await axios.get(`${API_URL}/api/users/check-phone`, {
+        params: { phoneNumber },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return res.data;
+    } catch (err) {
+      console.error('Phone check error:', err.response?.data || err);
+      return {
+        success: false,
+        available: false,
+        message: err.response?.data?.message || 'Error checking phone',
+      };
+    }
+  };
+
   const updateProfile = async (profileData, avatarFile, coverPhotoFile) => {
     setIsLoading(true);
     try {
@@ -71,15 +135,19 @@ export const UserProvider = ({ children }) => {
       fetchUserProfile();
       setError(null);
       showAlert('Profile updated successfully!', 'success');
-      return true;
+      return { success: true, data: response.data.data };
     } catch (err) {
-      console.error('Update profile error:', err.response?.data, err);
-      setError(err.response?.data?.message || 'Failed to update profile');
-      return false;
+      console.error('Update profile error:', err.response?.data || err);
+      const errorMessage = err.response?.data?.message || 'Failed to update profile';
+      const errors = err.response?.data?.errors || [];
+      setError(errorMessage);
+      showAlert(errors.length > 0 ? errors.join(', ') : errorMessage, 'error');
+      return { success: false, message: errorMessage, errors };
     } finally {
       setIsLoading(false);
     }
   };
+
 
   return (
     <UserContext.Provider
@@ -89,7 +157,11 @@ export const UserProvider = ({ children }) => {
         error,
         fetchUserProfile,
         updateProfile,
-        hideAlert
+        hideAlert,
+        checkUsername,
+        checkEmail,
+        checkPhone,
+        showAlert
       }}
     >
       {children}

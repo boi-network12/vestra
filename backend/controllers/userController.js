@@ -41,51 +41,90 @@ exports.updateUserDetails = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // Check username uniqueness
+    // validate errors array
+    const errors = [];
+
+    // Validate username
     if (username && username !== user.username) {
-      const usernameExists = await User.findOne({ username, isDeleted: { $ne: true } });
-      if (usernameExists) {
-        return res.status(400).json({ success: false, message: 'Username already taken' });
-      }
-    }
-
-    // Check email uniqueness
-    if (email && email !== user.email) {
-      const emailExists = await User.findOne({ email, isDeleted: { $ne: true } });
-      if (emailExists) {
-        return res.status(400).json({ success: false, message: 'Email already taken' });
-      }
-    }
-
-    // Validate links structure
-    if (links) {
-      let parsedLinks;
-      try {
-        parsedLinks = typeof links === 'string' ? JSON.parse(links) : links;
-      } catch (err) {
-        return res.status(400).json({ success: false, message: 'Invalid links format' });
-      }
-      if (!Array.isArray(parsedLinks)) {
-        return res.status(400).json({ success: false, message: 'Links must be an array' });
-      }
-      for (const link of parsedLinks) {
-        if (!link.title || !link.url || typeof link.title !== 'string' || typeof link.url !== 'string') {
-          return res.status(400).json({
-            success: false,
-            message: 'Each link must have a valid title and URL as strings',
-          });
+      if (username.length < 3) {
+        errors.push('Username must be at least 3 characters');
+      } else if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+        errors.push('Username can only contain letters, numbers, and underscores');
+      } else {
+        const usernameExists = await User.findOne({ username, isDelete: { $ne: true } });
+        if (usernameExists) {
+          errors.push('Username already taken');
         }
       }
     }
 
-    // Parse location if sent as string
+    // Validate email
+    if (email && email !== user.email) {
+      if (!/^\S+@\S+\.\S+$/.test(email)) {
+        errors.push('Invalid email format');
+      } else {
+        const emailExists = await User.findOne({ email, isDelete: { $ne: true } });
+        if (emailExists) {
+          errors.push('Email already taken');
+        }
+      }
+    }
+
+    // Validate phone number
+    if (phoneNumber && phoneNumber !== user.phoneNumber) {
+      if (!/^\+?[\d\s\-()]{7,15}$/.test(phoneNumber)) {
+        errors.push('Invalid phone number format');
+      } else {
+        const phoneExists = await User.findOne({ phoneNumber, isDelete: { $ne: true } });
+        if (phoneExists) {
+          errors.push('Phone number already taken');
+        }
+      }
+    }
+
+    // Validate location
     let parsedLocation = location;
     if (typeof location === 'string') {
       try {
         parsedLocation = JSON.parse(location);
       } catch (err) {
-        return res.status(400).json({ success: false, message: 'Invalid location format' });
+        errors.push('Invalid location format');
       }
+    }
+    if (parsedLocation && (!parsedLocation.latitude || !parsedLocation.longitude)) {
+      errors.push('Location must include valid latitude and longitude');
+    }
+    
+    // Validate links
+    let parsedLinks = links;
+    if (typeof links === 'string') {
+      try {
+        parsedLinks = JSON.parse(links);
+      } catch (err) {
+        errors.push('Invalid links format');
+      }
+    }
+    if (parsedLinks && !Array.isArray(parsedLinks)) {
+      errors.push('Links must be an array');
+    } else if (parsedLinks) {
+      for (const link of parsedLinks) {
+        if (!link.title || !link.url || typeof link.title !== 'string' || typeof link.url !== 'string') {
+          errors.push('Each link must have a valid title and URL as strings');
+        }
+      }
+    }
+
+    // Validate birth date
+    if (birthDate) {
+      const parsedDate = new Date(birthDate);
+      if (isNaN(parsedDate)) {
+        errors.push('Invalid birth date format');
+      }
+    }
+   
+    // If there are validation errors, return them
+    if (errors.length > 0) {
+      return res.status(400).json({ success: false, message: 'Invalid field(s)', errors });
     }
 
     // Track changes for history
@@ -100,7 +139,7 @@ exports.updateUserDetails = async (req, res) => {
       'profile.bio': bio,
       'profile.location': parsedLocation,
       'profile.dateOfBirth': birthDate,
-      'profile.links': links ? (typeof links === 'string' ? JSON.parse(links) : links) : undefined,
+      'profile.links': parsedLinks,
       'profile.avatar': req.files?.avatar ? req.files.avatar[0].url : undefined,
       'profile.coverPhoto': req.files?.coverPhoto ? req.files.coverPhoto[0].url : undefined,
     };
@@ -165,23 +204,10 @@ exports.updateUserDetails = async (req, res) => {
         country: parsedLocation.country || user.profile.location?.country,
       };
     }
-    if (birthDate) {
-      const parsedDate = new Date(birthDate);
-      if (!isNaN(parsedDate)) {
-        user.profile.dateOfBirth = parsedDate;
-      } else {
-        return res.status(400).json({ success: false, message: 'Invalid birth date format' });
-      }
-    }
-    if (links !== undefined) {
-      user.profile.links = links ? (typeof links === 'string' ? JSON.parse(links) : links) : [];
-    }
-    if (req.files?.avatar) {
-      user.profile.avatar = req.files.avatar[0].url;
-    }
-    if (req.files?.coverPhoto) {
-      user.profile.coverPhoto = req.files.coverPhoto[0].url;
-    }
+    if (birthDate) user.profile.dateOfBirth = new Date(birthDate);
+    if (parsedLinks !== undefined) user.profile.links = parsedLinks || [];
+    if (req.files?.avatar) user.profile.avatar = req.files.avatar[0].url;
+    if (req.files?.coverPhoto) user.profile.coverPhoto = req.files.coverPhoto[0].url;
 
     // Save changes to history
     if (changes.length > 0) {
@@ -197,7 +223,6 @@ exports.updateUserDetails = async (req, res) => {
   }
 };
 
-
 // Get User History (Admin only)
 exports.getUserHistory = async (req, res) => {
   try {
@@ -211,6 +236,66 @@ exports.getUserHistory = async (req, res) => {
     res.json({ success: true, data: history });
   } catch (err) {
     console.error('Get user history error:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// Check Username Availability
+exports.checkUsernameAvailability = async (req, res) => {
+  try {
+    const { username } = req.query;
+    if (!username) {
+      return res.status(400).json({ success: false, message: 'Username is required' });
+    }
+    if (username.length < 3) {
+      return res.status(400).json({ success: false, message: 'Username must be at least 3 characters' });
+    }
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Username can only contain letters, numbers, and underscores',
+      });
+    }
+    const usernameExists = await User.findOne({ username, isDelete: { $ne: true } });
+    res.json({ success: true, available: !usernameExists, message: usernameExists ? 'Username already taken' : 'Username available' });
+  } catch (err) {
+    console.error('Check username availability error:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// Check Email Availability
+exports.checkEmailAvailability = async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email is required' });
+    }
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      return res.status(400).json({ success: false, message: 'Invalid email format' });
+    }
+    const emailExists = await User.findOne({ email, isDelete: { $ne: true } });
+    res.json({ success: true, available: !emailExists });
+  } catch (err) {
+    console.error('Check email availability error:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// Check Phone Number Availability
+exports.checkPhoneAvailability = async (req, res) => {
+  try {
+    const { phoneNumber } = req.query;
+    if (!phoneNumber) {
+      return res.status(400).json({ success: false, message: 'Phone number is required' });
+    }
+    if (!/^\+?[\d\s\-()]{7,15}$/.test(phoneNumber)) {
+      return res.status(400).json({ success: false, message: 'Invalid phone number format' });
+    }
+    const phoneExists = await User.findOne({ phoneNumber, isDelete: { $ne: true } });
+    res.json({ success: true, available: !phoneExists });
+  } catch (err) {
+    console.error('Check phone number availability error:', err);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };

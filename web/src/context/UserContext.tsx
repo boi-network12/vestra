@@ -12,11 +12,31 @@ interface UserContextType {
   userProfile: User | null;
   isLoading: boolean;
   error: string | null;
+  alert: { visible: boolean; message: string; type: ToastType };
+  checkUsername: (username: string) => Promise<{
+    success: boolean;
+    available: boolean;
+    message: string;
+  }>;
+  checkEmail: (email: string) => Promise<{
+    success: boolean;
+    available: boolean;
+    message: string;
+  }>;
+  checkPhone: (phoneNumber: string) => Promise<{
+    success: boolean;
+    available: boolean;
+    message: string;
+  }>;
   updateProfile: (
     profileData: Partial<User["profile"]>,
     avatarFile?: File,
     coverPhotoFile?: File
   ) => Promise<boolean>;
+  updateUser: (
+    userData: Partial<Pick<User, "username" | "email" | "phoneNumber">>
+  ) => Promise<boolean>;
+  showAlert: (message: string, type?: ToastType) => void;
   hideAlert: () => void;
 }
 
@@ -48,6 +68,74 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const hideAlert = () =>
     setAlert({ ...alert, visible: false, message: "", type: "info" });
 
+  // === Validation functions ===
+  const checkUsername = async (username: string) => {
+    if (!username) {
+      return { success: false, available: false, message: "Username is required" };
+    }
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(`${API_URL}/api/users/check-username`, {
+        params: { username },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return res.data as { success: boolean; available: boolean; message: string };
+    } catch (err) {
+      const error = err as AxiosError<{ message?: string }>;
+      console.error("Username check error:", error.response?.data || error);
+      return {
+        success: false,
+        available: false,
+        message: error.response?.data?.message || "Error checking username",
+      };
+    }
+  };
+
+  const checkEmail = async (email: string) => {
+    if (!email) {
+      return { success: false, available: false, message: "Email is required" };
+    }
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(`${API_URL}/api/users/check-email`, {
+        params: { email },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return res.data as { success: boolean; available: boolean; message: string };
+    } catch (err) {
+      const error = err as AxiosError<{ message?: string }>;
+      console.error("Email check error:", error.response?.data || error);
+      return {
+        success: false,
+        available: false,
+        message: error.response?.data?.message || "Error checking email",
+      };
+    }
+  };
+
+  const checkPhone = async (phoneNumber: string) => {
+    if (!phoneNumber) {
+      return { success: false, available: false, message: "Phone is required" };
+    }
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(`${API_URL}/api/users/check-phone`, {
+        params: { phoneNumber },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return res.data as { success: boolean; available: boolean; message: string };
+    } catch (err) {
+      const error = err as AxiosError<{ message?: string }>;
+      console.error("Phone check error:", error.response?.data || error);
+      return {
+        success: false,
+        available: false,
+        message: error.response?.data?.message || "Error checking phone",
+      };
+    }
+  };
+
+
   const updateProfile = async (
     profileData: Partial<User["profile"]>,
     avatarFile?: File,
@@ -55,7 +143,11 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   ): Promise<boolean> => {
     const token = localStorage.getItem("token");
 
-    if (!token) return false;
+    if (!token) {
+      setError("No authentication token found");
+      showAlert("Please log in to update your profile", "error");
+      return false;
+    }
 
     setIsLoading(true);
     try {
@@ -96,6 +188,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
       setUserProfile(response.data.data);
       await fetchUser();
+      setError(null);
       showAlert("Profile updated successfully!", "success");
       return true;
     } catch (err) {
@@ -110,13 +203,58 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const updateUser = async (
+  userData: Partial<Pick<User, "username" | "email" | "phoneNumber">>
+): Promise<boolean> => {
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    setError("No authentication token found");
+    showAlert("Please log in to update your account", "error");
+    return false;
+  }
+
+  setIsLoading(true);
+  try {
+    const response = await axios.put(
+      `${API_URL}/api/users/me`,
+      userData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    setUserProfile(response.data.data);
+    await fetchUser();
+    setError(null);
+    showAlert("Account updated successfully!", "success");
+    return true;
+  } catch (err) {
+    const error = err as AxiosError<{ message?: string }>;
+    console.error("Update user error:", error.response?.data || error);
+    setError(error.response?.data?.message || "Failed to update account");
+    showAlert(error.response?.data?.message || "Failed to update account", "error");
+    return false;
+  } finally {
+    setIsLoading(false);
+  }
+};
+
   return (
     <UserContext.Provider
       value={{
         userProfile,
         isLoading,
         error,
+        alert,
+        checkUsername,
+        checkEmail,
+        checkPhone,
         updateProfile,
+        updateUser,
+        showAlert,
         hideAlert,
       }}
     >

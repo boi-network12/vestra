@@ -1,19 +1,15 @@
 "use client";
+import AccountSettings from '@/components/settings/AccountSettings';
+import { SettingsComponentProps } from '@/types/settings';
 // constants/SettingsSections.ts
 import { ComponentType } from 'react';
 
-// Placeholder for AccountSettings (replace with your actual component)
-const AccountSettings: ComponentType = () => (
-  <div className="p-4">
-    <h3 className="text-lg font-semibold">Account Settings</h3>
-    <p className="text-gray-600">Manage your account details here.</p>
-  </div>
-);
+
 
 export type SettingsItem = {
   id: string;
   title: string;
-  component?: ComponentType;
+  component?: ComponentType<SettingsComponentProps>;
 };
 
 export type SettingsSection = {

@@ -4,9 +4,11 @@ import axios from 'axios';
 import * as Location from 'expo-location';
 import { createContext, useCallback, useEffect, useState } from 'react';
 import { API_URL } from '../config/apiConfig';
+import { router } from "expo-router";
 
 
 export const AuthContext = createContext();
+
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -339,6 +341,7 @@ export const AuthProvider = ({ children }) => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       await AsyncStorage.removeItem('token');
+      router.replace('/login');
       setUser(null);
       setLinkedAccounts([]);
       setError(null);

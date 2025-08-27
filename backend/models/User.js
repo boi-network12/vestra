@@ -22,7 +22,8 @@ const userSchema = new mongoose.Schema({
   phoneNumber: {
     type: String,
     unique: true,
-    sparse: true
+    sparse: true,
+    match: [/^\+?[\d\s\-()]{7,15}$/, 'Please provide a valid phone number'],
   },
   password: {
     type: String,
