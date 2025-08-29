@@ -5,7 +5,6 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "resizeMode": "contain",
     "backgroundColor": "#02001C",
     "scheme": "vestraapp",
     "userInterfaceStyle": "automatic",
@@ -18,7 +17,7 @@
       "**/*"
     ],
     "jsEngine": "hermes",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "plugins": [
       "expo-router",
       [
