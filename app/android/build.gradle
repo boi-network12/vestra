@@ -2,18 +2,16 @@
 
 buildscript {
   ext {
-    // Force Kotlin to use a version compatible with Expo SDK 52+
-    kotlinVersion = "2.0.21"
+    kotlinVersion = "1.9.24"
   }
-
   repositories {
     google()
     mavenCentral()
   }
   dependencies {
-    classpath("com.android.tools.build:gradle")
-    classpath("com.facebook.react:react-native-gradle-plugin")
-    classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
+    classpath('com.android.tools.build:gradle')
+    classpath('com.facebook.react:react-native-gradle-plugin')
+    classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')
   }
 }
 
