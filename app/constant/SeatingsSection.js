@@ -1,4 +1,5 @@
-import AccountSettings from "../app/(tabs)/settings/Modal/AccountSettings";
+import AccountSettings from "../app/settings/Modal/AccountSettings";
+
 
 // constants/SettingsSection.js
 export const SETTINGS_SECTIONS = [

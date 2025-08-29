@@ -11,15 +11,15 @@ import {
   Modal,
 } from 'react-native';
 import React, { useState, useMemo } from 'react';
-import SettingsHeader from '../../../components/headers/SettingsHeader';
 import { useRouter } from 'expo-router';
-import { useTheme } from '../../../context/ThemeContext';
-import { getThemeColors } from '../../../utils/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { heightPercentageToDP as hp } from 'react-native-responsive-screen';
-import { SETTINGS_SECTIONS } from '../../../constant/SeatingsSection'
-import { useAuth } from '../../../hooks/useAuth';
-import { useUser } from '../../../hooks/useUser';
+import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../hooks/useAuth';
+import { getThemeColors } from '../../utils/theme';
+import { useUser } from '../../hooks/useUser';
+import { SETTINGS_SECTIONS } from '../../constant/SeatingsSection';
+import SettingsHeader from '../../components/headers/SettingsHeader';
 
 // ✅ Separate search bar so it won't re-mount and close the keyboard
 const SearchHeaderComponent = ({ searchText, setSearchText, colors }) => (

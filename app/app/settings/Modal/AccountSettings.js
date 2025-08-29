@@ -3,7 +3,7 @@ import { heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { useState, useMemo, useCallback } from 'react';
 import { debounce } from 'lodash';
 import { Ionicons } from '@expo/vector-icons';
-import { useAlert } from '../../../../context/AlertContext';
+import { useAlert } from '../../../context/AlertContext';
 
 export default function AccountSettings({ colors, user, updateProfile, checkUsername, checkEmail, checkPhone, logout }) {
   const { showAlert } = useAlert();

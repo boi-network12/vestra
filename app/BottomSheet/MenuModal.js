@@ -8,7 +8,7 @@ import { useRouter } from 'expo-router';
 
 const MENU_ITEMS = [
   { label: 'Settings and Privacy', icon: 'settings-outline', path: '/settings' },
-  { label: 'Job', icon: 'briefcase-outline', path: '/job' },
+  { label: 'Job', icon: 'briefcase-outline', path: '/jobs' },
   { label: 'Help', icon: 'help-circle-outline', path: '/help' },
   { label: 'Feedback', icon: 'chatbubble-ellipses-outline', path: '/feedback' },
 ];
