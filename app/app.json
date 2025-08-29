@@ -87,10 +87,7 @@
     },
     "extra": {
       "apiBaseUrl": "https://your-backend-api.com",
-      "router": {},
-      "eas": {
-        "projectId": "d2f74d10-845a-473d-b2b9-d4f0363e3f20"
-      }
+      "router": {}
     },
     "experiments": {
       "typedRoutes": true
