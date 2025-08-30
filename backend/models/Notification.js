@@ -14,6 +14,7 @@ const notificationSchema = new mongoose.Schema({
         'like',
         'comment',
         'follow',
+        'follow_request',
         'mention',
         'system',
         'account_change',

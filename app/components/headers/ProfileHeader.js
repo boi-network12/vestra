@@ -11,9 +11,9 @@ export default function ProfileHeader({ colors, user, openSwitchAccountModal, op
       </TouchableOpacity>
 
       <View style={[styles.btns]}>
-        <TouchableOpacity style={[styles.click, { backgroundColor: colors.card }]}>
+        {/* <TouchableOpacity style={[styles.click, { backgroundColor: colors.card }]}>
           <Ionicons name="cloud-upload-outline" size={hp(2.3)} color={colors.text} />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
         <TouchableOpacity style={[styles.click, { backgroundColor: colors.card }]} onPress={openMenuModal}>
           <Ionicons name="reorder-three-outline" size={hp(2.3)} color={colors.text} />
         </TouchableOpacity>
