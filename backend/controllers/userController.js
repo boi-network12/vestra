@@ -299,3 +299,26 @@ exports.checkPhoneAvailability = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+
+// Get Other User Details
+exports.getOtherUserDetails = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Validate userId
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'User ID is required' });
+    }
+
+    // Find user by ID, exclude sensitive fields
+    const user = await User.findById(userId).select('-password -sessions.token');
+    if (!user || user.isDelete) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    res.json({ success: true, data: user });
+  } catch (err) {
+    console.error('Get other user details error:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};

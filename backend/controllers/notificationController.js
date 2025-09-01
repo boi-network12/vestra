@@ -2,73 +2,92 @@ const Notification = require("../models/Notification");
 const User = require("../models/User");
 const UserHistory = require("../models/UserHistory");
 const { sendPushNotification, sendEmailNotification } = require("../utils/email");
+const mongoose = require('mongoose');
 
 
 
 exports.createNotification = async ({ userId, type, message, relatedId, relatedModel }) => {
-    try {
-        const user = await User.findById(userId);
-        if (!user) {
-            throw new Error('user not found');
-        }
-
-        const notification = await Notification.create({
-            userId,
-            type,
-            message,
-            relatedId,
-            relatedModel
-        });
-
-        // send notification based on user settings'
-        if (user.notificationSettings.pushNotifications && type !== "system") {
-            await sendPushNotification(user, notification);
-        }
-        if (user.notificationSettings.emailNotifications){
-            await sendEmailNotification(user, notification)
-        }
-
-        return notification;
-    } catch (error) {
-        console.error(`Error creating notification for user ${userId}:`, error);
-        throw new Error('Notification creation failed');
+  try {
+    if (!mongoose.isValidObjectId(userId) || !type || !message) {
+      throw new Error('Invalid notification parameters');
     }
+    if (relatedId && !mongoose.isValidObjectId(relatedId)) {
+      throw new Error('Invalid relatedId');
+    }
+    if (relatedModel && !['User', 'Post'].includes(relatedModel)) {
+      throw new Error('Invalid relatedModel');
+    }
+
+    const user = await User.findById(userId);
+    if (!user || user.isDelete) {
+      throw new Error('User not found');
+    }
+
+    const notification = await Notification.create({
+      userId,
+      type,
+      message,
+      relatedId,
+      relatedModel,
+    });
+
+    if (user.notificationSettings.pushNotifications && type !== "system") {
+      await sendPushNotification(user, notification);
+    }
+    if (user.notificationSettings.emailNotifications) {
+      await sendEmailNotification(user, notification);
+    }
+
+    return notification;
+  } catch (error) {
+    console.error(`Error creating notification for user ${userId}:`, {
+      type,
+      error: error.message,
+    });
+    throw new Error('Notification creation failed');
+  }
 };
 
 exports.getNotifications = async (req, res) => {
-    try {
-        const { page = 1, limit = 20, read} = req.query;
-        const query = { userId: req.user._id};
+  try {
+    const { page = 1, limit = 20, read } = req.query;
+    const query = { userId: req.user._id };
 
-        if (read !== undefined) {
-            query.read = read === 'true';
-        }
-
-        const notifications = await Notification.find(query)
-            .populate('relatedId', '-password')
-            .sort({ createdAt: -1 })
-            .skip((page - 1) * limit)
-            .limit(parseInt(limit));
-
-        const total = await Notification.countDocuments(query);
-
-        res.json({
-            success: true,
-            data: notifications,
-            meta: {
-                total,
-                page: parseInt(page),
-                limit: parseInt(limit),
-                totalPages: Math.ceil(total / limit),
-            },
-        })
-    } catch (error) {
-        console.error(`Error fetching notifications for user ${req.user._id}:`, error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to fetch notifications',
-        });
+    if (read !== undefined) {
+      if (!['true', 'false'].includes(read)) {
+        return res.status(400).json({ success: false, message: 'Invalid read parameter' });
+      }
+      query.read = read === 'true';
     }
+
+    const notifications = await Notification.find(query)
+      .populate('relatedId', '-password')
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit))
+      .lean();
+
+    const total = await Notification.countDocuments(query);
+
+    res.json({
+      success: true,
+      data: notifications,
+      meta: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    console.error(`Error fetching notifications for user ${req.user._id}:`, {
+      error: error.message,
+    });
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch notifications',
+    });
+  }
 };
 
 exports.markAsRead = async (req, res) => {

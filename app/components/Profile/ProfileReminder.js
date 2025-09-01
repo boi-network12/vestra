@@ -10,7 +10,7 @@ const withOpacity = (hex, opacity) => {
     return `rgba(${r}, ${g}, ${b}, ${opacity})`;
 };
 
-export default function ProfileReminder({ user, colors }) {
+export default function ProfileReminder({ user, colors, router }) {
     if (!user) return null;
 
     const _boxReminder = [
@@ -19,16 +19,22 @@ export default function ProfileReminder({ user, colors }) {
             desc: "Fill your feed with things that interest you",
             buttonTitle: user?.following?.length >= 10 ? "Done" : "See Profiles",
             completed: user?.following?.length >= 10,
-            icon: user?.following?.length >= 10 ? "circle-check" : "user-plus"
+            icon: user?.following?.length >= 10 ? "circle-check" : "user-plus",
+            onPress: () => router.push("/users") // Navigate to /users
         },
         {
             title: "Create post",
             desc: "Share your thoughts and experiences",
             buttonTitle: user?.posts?.length > 0 ? "Done" : "Create Post",
             completed: user?.posts?.length > 0,
-            icon: user?.posts?.length > 0 ? "circle-check" : "plus"
+            icon: user?.posts?.length > 0 ? "circle-check" : "plus",
+            onPress: () => console.log("Navigate to create post")
         },
     ];
+
+    // If all tasks are completed, don't render container
+    const allCompleted = _boxReminder.every(item => item.completed);
+    if (allCompleted) return null;
 
     return (
         <View style={styles.container}>
@@ -50,21 +56,18 @@ export default function ProfileReminder({ user, colors }) {
                         <View
                             style={[
                                 styles.iconWrapper,
-                                { backgroundColor: withOpacity(colors.background, 5) }
+                                { backgroundColor: withOpacity(colors.background, 0.05) }
                             ]}
                         >
                             <FontAwesome6
                                 name={item.icon}
                                 size={hp(2.5)}
-                                color={item.completed ? colors.text : colors.text}
+                                color={colors.text}
                             />
                         </View>
 
-
-                            <Text style={[styles.SubTitle, { color: colors.text }]}>{item.title}</Text>
-
-                            <Text style={[styles.Desc, { color: colors.subText }]}>{item.desc}</Text>
-
+                        <Text style={[styles.SubTitle, { color: colors.text }]}>{item.title}</Text>
+                        <Text style={[styles.Desc, { color: colors.subText }]}>{item.desc}</Text>
 
                         {item.completed ? (
                             <View
@@ -76,7 +79,7 @@ export default function ProfileReminder({ user, colors }) {
                             </View>
                         ) : (
                             <TouchableOpacity 
-                              onPress={() => console.log(`Navigate to: ${item.title}`)}
+                              onPress={item.onPress} // Navigate if not completed
                               style={[styles.actionButton, { backgroundColor: colors.text }]}
                             >
                                 <Text style={[styles.actionButtonText, { color: colors.background }]}>

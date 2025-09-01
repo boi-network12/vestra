@@ -8,14 +8,16 @@ import { UserProvider } from '../context/UserContext'
 import "../global.css"
 import { AlertProvider } from '../context/AlertContext'
 import CustomAlert from '../components/custom/CustomAlert'
+import { FriendProvider } from '../context/FriendContext'
 
 const AppContent = () => {
     return (
         <ThemeProvider>
             <AuthProvider>
-                <AlertProvider>
-                    <UserProvider>
-                        <Host>
+                <UserProvider>
+                    <FriendProvider>
+                        <AlertProvider>
+                            <Host>
                             <Stack screenOptions={{ 
                                 headerShown: false,
                                 animation: 'fade',
@@ -25,8 +27,9 @@ const AppContent = () => {
                             }} />
                             <CustomAlert />
                         </Host>
-                    </UserProvider>
-                </AlertProvider>
+                        </AlertProvider>
+                    </FriendProvider>
+                </UserProvider>
             </AuthProvider>
         </ThemeProvider>
     )

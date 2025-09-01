@@ -171,15 +171,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const checkAuth = useCallback(
   async () => {
-    if (user) return; // Skip if user is already set
+    const token = localStorage.getItem("token");
+    if (!token || user) return; // Skip if user is already set
     setIsLoading(true);
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setUser(null);
-        setLinkedAccounts([]);
-        return;
-      }
       const response = await axios.get(`${API_URL}/api/users/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -204,7 +199,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(false);
     }
   },
-  [user, fetchLinkedAccounts, fetchUser]
+  [user, fetchLinkedAccounts]
 );
 
   const login = async (data: LoginData): Promise<boolean> => {
@@ -290,7 +285,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUser({ ...user, isVerified: true });
           showAlert(response.data.message || "Account verified successfully!", "success");
           localStorage.removeItem("pendingVerificationEmail");
-          await checkAuth(); 
+          fetchUser();
           return true;
         }
         throw new Error("User not found");
@@ -490,7 +485,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     checkAuth();
-  }, [checkAuth]);
+  }, [checkAuth]); // Remove `user` from dependencies
 
   return (
     <AuthContext.Provider

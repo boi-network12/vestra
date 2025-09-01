@@ -144,9 +144,9 @@ export const AuthProvider = ({ children }) => {
         });
         setLinkedAccounts(data.activeSessions || []);
         setError(null);
-        showAlert('Login successful!', 'success');
         await fetchLinkedAccounts(data.token);
         await fetchUserProfile();
+        showAlert('Login successful!', 'success');
         return true;
       } else {
         throw new Error('Login failed');
@@ -296,6 +296,7 @@ export const AuthProvider = ({ children }) => {
         setUser({ ...user, isVerified: true });
         fetchLinkedAccounts(await AsyncStorage.getItem('token'));
         showAlert('Account verified successfully!', 'success');
+        fetchUserProfile();
         return true;
       }
       return false;

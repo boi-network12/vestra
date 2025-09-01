@@ -1,130 +1,410 @@
+const mongoose = require("mongoose");
 const { calculateRelevanceScore } = require("../helper/suggestionRelevanceScore");
 const User = require("../models/User")
 const UserHistory = require('../models/UserHistory');
 const Notification = require('../models/Notification');
 const { addNotificationToQueue } = require("../jobs/notificationJob");
+const { RateLimiterMemory } = require("rate-limiter-flexible");
+
+const followLimiter = new RateLimiterMemory({
+  points: 50,
+  duration: 3600
+})
 
 // get suggested users (instagram like algorithm)
 exports.getSuggestedUsers = async (req, res) => {
-    try {
-        const currentUser = await User.findById(req.user._id);
-        if (!currentUser) {
-            return res.status(404).json({ success: false, message: "user not found" })
-        }
+  try {
+    const { page = 1, limit = 20 } = req.query;
+    const currentUser = await User.findById(req.user._id).select(
+      'following followers blockedUsers profile.interests profile.location profile.culturalBackground'
+    );
 
-        // Fetch all users excluding self, blocked users, and already followed users
-        const users = await User.find({
-            _id: { $ne: currentUser._id, $nin: currentUser.blockedUsers },
-            isDelete: { $ne: true },
-            isVerified: true
-        }).select("-password -createdAt -updatedAt");
-
-        // calculate relevance scores
-        const suggestedUsers = users
-           .map(user => ({
-             user,
-             score: calculateRelevanceScore(currentUser, user)
-           }))
-             .filter(({ score }) => score > 0)
-             .sort((a, b) => b.score - a.score)
-             .slice(0, 10)
-             .map(({ user }) => ({
-                _id: user._id,
-                username: user.username,
-                profile: {
-                    firstName: user.profile.firstName,
-                    lastName: user.profile.lastName,
-                    avatar: user.profile.avatar,
-                    bio: user.profile.bio
-                },
-             }));
-
-             res.join({
-                success: true,
-                data: suggestedUsers,
-                message: "suggested users fetched successfully"
-             })
-    } catch (err) {
-        console.error('Get suggested users error:', err);
-        res.status(500).json({ success: false, message: 'Server error' });
+    if (!currentUser) {
+      return res.status(404).json({ success: false, message: 'User not found' });
     }
-}
+
+    // Fetch all users who are not deleted, not the current user, not followed, and not blocked
+    const users = await User.find({
+      _id: { $ne: currentUser._id },
+      isDelete: { $ne: true },
+      blockedUsers: { $ne: currentUser._id }, // Exclude users who blocked the current user
+      $nor: [
+        { _id: { $in: currentUser.following } }, 
+        { _id: { $in: currentUser.blockedUsers } }, // Exclude users blocked by the current user
+      ],
+    }).select(
+      'username profile.firstName profile.lastName profile.avatar profile.bio privacySettings.profileVisibility followers'
+    );
+
+    // Calculate relevance scores and add isFollowingCurrentUser flag
+    const suggestedUsers = users.map((user) => {
+      const score = calculateRelevanceScore(currentUser, user);
+      return {
+        _id: user._id,
+        username: user.username,
+        profile: {
+          firstName: user.profile.firstName,
+          lastName: user.profile.lastName,
+          avatar: user.profile.avatar,
+          bio: user.profile.bio,
+        },
+        privacySettings: {
+          profileVisibility: user.privacySettings.profileVisibility,
+        },
+        isFollowingCurrentUser: user.followers.includes(currentUser._id),
+        score,
+      };
+    });
+
+    // Sort by relevance score (descending) and apply pagination
+    const sortedUsers = suggestedUsers.sort((a, b) => b.score - a.score);
+    const paginatedUsers = sortedUsers.slice((page - 1) * limit, page * limit);
+
+    return res.json({
+      success: true,
+      data: paginatedUsers,
+      meta: {
+        total: sortedUsers.length,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(sortedUsers.length / limit),
+      },
+      message: 'Suggested users fetched successfully',
+    });
+  } catch (err) {
+    console.error('Get suggested users error:', {
+      message: err.message || 'Unknown error',
+      stack: err.stack,
+    });
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
 
 // Follow a user
 exports.followUser = async (req, res) => {
-    try {
-        const { userId } = res.body;
-        const currentUser = await User.findById(req.user._id);
-        const userToFollow = await User.findById(userId);
-
-        if (!userToFollow || userToFollow.isDelete) {
-           return res.status(404).json({ success: false, message: 'User not found' });
-        }
-
-        if (currentUser._id.equals(userToFollow._id)) {
-           return res.status(400).json({ success: false, message: 'Cannot follow yourself' });
-        }
-
-        if (currentUser.following.includes(userId)) {
-           return res.status(400).json({ success: false, message: 'Already following this user' });
-        }
-
-        if (userToFollow.blockedUsers.includes(currentUser._id)) {
-           return res.status(403).json({ success: false, message: 'You are blocked by this user' });
-        }
-
-        // Respect privacy settings
-        if (userToFollow.privacySettings.profileVisibility === 'private') {
-            await addNotificationToQueue({
-                userId: userToFollow._id,
-                type: 'follow_request',
-                message: `${currentUser.username} wants to follow you`,
-                relatedId: currentUser._id,
-                relatedModel: 'User'
-            });
-
-            res.json({
-                success: true,
-                message: 'Follow request sent. Waiting for approval.',
-            });
-            return;
-        }
-
-        // Add to following and followers
-        currentUser.following.push(userToFollow._id);
-        userToFollow.followers.push(currentUser._id);
-        await Promise.all([currentUser.save(), userToFollow.save()]);
-
-        // Log in userHistory
-        await UserHistory.create({
-            userId: currentUser._id,
-            field: 'following',
-            oldValue: '',
-            newValue: userToFollow._id.toString(),
-            ipAddress: req.ip,
-            device: req.headers['user-agent'] || 'unknown',
-        });
-
-        // send notification i enabled 
-        if (userToFollow.notificationSettings.follows) {
-            await addNotificationToQueue({
-                userId: userToFollow._id,
-                type: 'follow',
-                message: `${currentUser.username} started following you`,
-                relatedId: currentUser._id,
-                relatedModel: 'User',
-            });
-        }
-
-        res.json({
-            success: true,
-            message: `Now following ${userToFollow.username}`,
-        });
-    } catch (err) {
-        console.error('Follow user error:', err);
-        res.status(500).json({ success: false, message: 'Server error' });
+  try {
+    const { userId } = req.body;
+    if (!userId || !mongoose.isValidObjectId(userId)) {
+      return res.status(400).json({ success: false, message: "Invalid or missing userId" });
     }
-}
+
+    const currentUser = await User.findById(req.user._id);
+    const userToFollow = await User.findById(userId);
+
+    if (!userToFollow || userToFollow.isDelete) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    if (currentUser._id.equals(userToFollow._id)) {
+      return res.status(400).json({ success: false, message: "Cannot follow yourself" });
+    }
+
+    if (currentUser.following.includes(userId)) {
+      return res.status(400).json({ success: false, message: "Already following this user" });
+    }
+
+    if (userToFollow.blockedUsers.includes(currentUser._id)) {
+      return res.status(403).json({ success: false, message: "You are blocked by this user" });
+    }
+
+    // Rate limiting
+    try {
+      await followLimiter.consume(currentUser._id);
+    } catch (rlErr) {
+      console.error('Rate limit error:', {
+        userId: currentUser._id,
+        message: rlErr.message,
+      });
+      return res.status(429).json({
+        success: false,
+        message: "Follow limit exceeded: Maximum 50 follows per hour",
+      });
+    }
+
+    if (userToFollow.privacySettings.profileVisibility === "private") {
+      await addNotificationToQueue({
+        userId: userToFollow._id,
+        type: "follow_request",
+        message: `${currentUser.username} wants to follow you`,
+        relatedId: currentUser._id,
+        relatedModel: "User",
+      });
+      return res.json({
+        success: true,
+        message: "Follow request sent. Waiting for approval.",
+      });
+    }
+
+    // Update following and followers with optimistic concurrency
+    const session = await mongoose.startSession();
+    try {
+      await session.withTransaction(async () => {
+        await User.findOneAndUpdate(
+          { _id: currentUser._id, following: { $ne: userId } },
+          { $push: { following: userToFollow._id } },
+          { session }
+        );
+        await User.findOneAndUpdate(
+          { _id: userId, followers: { $ne: currentUser._id } },
+          { $push: { followers: currentUser._id } },
+          { session }
+        );
+      });
+
+      await UserHistory.create({
+        userId: currentUser._id,
+        field: "following",
+        oldValue: "",
+        newValue: userToFollow._id.toString(),
+        ipAddress: req.ip,
+        device: req.headers["user-agent"] || "unknown",
+      });
+
+      if (userToFollow.notificationSettings.follows) {
+        await addNotificationToQueue({
+          userId: userToFollow._id,
+          type: "follow",
+          message: `${currentUser.username} started following you`,
+          relatedId: currentUser._id,
+          relatedModel: "User",
+        });
+      }
+
+      return res.json({
+        success: true,
+        message: `Now following ${userToFollow.username}`,
+      });
+    } finally {
+      session.endSession();
+    }
+  } catch (err) {
+    console.error("Follow user error:", {
+      message: err.message || "Unknown error",
+      stack: err.stack,
+    });
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// In friendController.js
+exports.cancelFollowRequest = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (!userId || !mongoose.isValidObjectId(userId)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid or missing userId" });
+    }
+
+    const currentUser = await User.findById(req.user._id);
+    const targetUser = await User.findById(userId);
+
+    if (!targetUser || targetUser.isDelete) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // Check if there is a pending follow request
+    const notification = await Notification.findOne({
+      userId: targetUser._id,
+      type: "follow_request",
+      relatedId: currentUser._id,
+    });
+
+    if (!notification) {
+      return res
+        .status(400)
+        .json({ success: false, message: "No pending follow request found" });
+    }
+
+    // Remove the notification
+    await Notification.deleteOne({
+      userId: targetUser._id,
+      type: "follow_request",
+      relatedId: currentUser._id,
+    });
+
+    // Log in UserHistory
+    await UserHistory.create({
+      userId: currentUser._id,
+      field: "follow_request_canceled",
+      oldValue: targetUser._id.toString(),
+      newValue: "",
+      ipAddress: req.ip,
+      device: req.headers["user-agent"] || "unknown",
+    });
+
+    return res.json({
+      success: true,
+      message: `Canceled follow request to ${targetUser.username}`,
+    });
+  } catch (err) {
+    console.error("Cancel follow request error:", {
+      message: err.message || "Unknown error",
+      stack: err.stack,
+    });
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// pending user requests
+exports.getPendingFollowRequests = async (req, res) => {
+  try {
+    const { page = 1, limit = 20 } = req.query;
+    const notifications = await Notification.find({
+      userId: req.user._id,
+      type: "follow_request",
+    })
+      .populate("relatedId", "-password")
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit));
+
+    const pendingRequests = notifications.map((notification) => ({
+      _id: notification._id,
+      user: {
+        _id: notification.relatedId._id,
+        username: notification.relatedId.username,
+        firstName: notification.relatedId.profile.firstName,
+        lastName: notification.relatedId.profile.lastName,
+        avatar: notification.relatedId.profile.avatar,
+      },
+      message: notification.message,
+      createdAt: notification.createdAt,
+    }));
+
+    return res.json({
+      success: true,
+      data: pendingRequests,
+      meta: {
+        total: await Notification.countDocuments({
+          userId: req.user._id,
+          type: "follow_request",
+        }),
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(
+          (await Notification.countDocuments({
+            userId: req.user._id,
+            type: "follow_request",
+          })) / limit
+        ),
+      },
+      message: "Pending follow requests fetched successfully",
+    });
+  } catch (err) {
+    console.error("Get pending follow requests error:", {
+      message: err.message || "Unknown error",
+      stack: err.stack,
+    });
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// Accept follow request
+exports.acceptFollowRequest = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (!userId || !mongoose.isValidObjectId(userId)) {
+      return res.status(400).json({ success: false, message: 'Invalid or missing userId' });
+    }
+
+    const currentUser = await User.findById(req.user._id);
+    const requester = await User.findById(userId);
+
+    if (!requester || requester.isDelete) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Check if follow request exists
+    const notification = await Notification.findOne({
+      userId: currentUser._id,
+      type: 'follow_request',
+      relatedId: requester._id,
+    });
+    if (!notification) {
+      return res.status(400).json({ success: false, message: 'No pending follow request found' });
+    }
+
+    const session = await mongoose.startSession();
+    try {
+      await session.withTransaction(async () => {
+        currentUser.followers.push(requester._id);
+        requester.following.push(currentUser._id);
+        await Promise.all([currentUser.save({ session }), requester.save({ session })]);
+
+        await Notification.deleteOne({ _id: notification._id }, { session });
+      });
+
+      await UserHistory.create({
+        userId: currentUser._id,
+        field: 'followers',
+        oldValue: '',
+        newValue: requester._id.toString(),
+        ipAddress: req.ip,
+        device: req.headers['user-agent'] || 'unknown',
+      });
+
+      return res.json({
+        success: true,
+        message: `Accepted follow request from ${requester.username}`,
+      });
+    } finally {
+      session.endSession();
+    }
+  } catch (err) {
+    console.error('Accept follow request error:', {
+      message: err.message,
+      stack: err.stack,
+    });
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// reject follow request
+exports.rejectFollowRequest = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (!userId || !mongoose.isValidObjectId(userId)) {
+      return res.status(400).json({ success: false, message: 'Invalid or missing userId' });
+    }
+
+    const currentUser = await User.findById(req.user._id);
+    const requester = await User.findById(userId);
+
+    if (!requester || requester.isDelete) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const notification = await Notification.findOneAndDelete({
+      userId: currentUser._id,
+      type: 'follow_request',
+      relatedId: requester._id,
+    });
+
+    if (!notification) {
+      return res.status(400).json({ success: false, message: 'No pending follow request found' });
+    }
+
+    await UserHistory.create({
+      userId: currentUser._id,
+      field: 'follow_request_rejected',
+      oldValue: requester._id.toString(),
+      newValue: '',
+      ipAddress: req.ip,
+      device: req.headers['user-agent'] || 'unknown',
+    });
+
+    return res.json({
+      success: true,
+      message: `Rejected follow request from ${requester.username}`,
+    });
+  } catch (err) {
+    console.error('Reject follow request error:', {
+      message: err.message,
+      stack: err.stack,
+    });
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
 
 // unfollow a user 
 exports.unfollowUser = async (req, res) => {

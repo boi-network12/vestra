@@ -10,6 +10,7 @@ export const UserContext = createContext();
 export const UserProvider = ({ children }) => {
   const { fetchUserProfile } = useContext(AuthContext);
   const [userProfile, setUserProfile] = useState(null);
+  const [otherUserProfile, setOtherUserProfile] = useState(null); 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [alert, setAlert] = useState({ visible: false, message: '', type: 'info' });
@@ -148,11 +149,37 @@ export const UserProvider = ({ children }) => {
     }
   };
 
+  const getOtherUserDetails = async (profileId) => {
+    if (!profileId) {
+      setError('Profile ID is required');
+      showAlert('Profile ID is required', 'error');
+      return { success: false, message: 'Profile ID is required' };
+    }
+    setIsLoading(true);
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const response = await axios.get(`${API_URL}/api/users/user-detail/${profileId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setOtherUserProfile(response.data.data); // Store fetched user profile
+      setError(null);
+      return { success: true, data: response.data.data };
+    } catch (err) {
+      console.error('Get other user details error:', err.response?.data || err);
+      const errorMessage = err.response?.data?.message || 'Failed to fetch user details';
+      setError(errorMessage);
+      showAlert(errorMessage, 'error');
+      return { success: false, message: errorMessage };
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <UserContext.Provider
       value={{
         userProfile,
+        otherUserProfile,
         isLoading,
         error,
         fetchUserProfile,
@@ -161,7 +188,8 @@ export const UserProvider = ({ children }) => {
         checkUsername,
         checkEmail,
         checkPhone,
-        showAlert
+        showAlert,
+        getOtherUserDetails
       }}
     >
       {children}

@@ -82,45 +82,78 @@ exports.register = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Email already taken' });
     }
 
-    // process location data
-    const processedLocation = await processLocation(location, req.ip)
+    // Process location data
+    const processedLocation = await processLocation(location, req.ip);
     if (!processedLocation.coordinates) {
-    console.warn('No valid location data available, setting default location');
-    processedLocation.coordinates = [];
-    processedLocation.city = '';
-    processedLocation.country = '';
-  }
+      console.warn('No valid location data available, setting default location');
+      processedLocation.coordinates = [];
+      processedLocation.city = '';
+      processedLocation.country = '';
+    }
 
-    // Create user
-    const user = await User.create({
-      email,
-      password,
-      profile: {
-        firstName,
-        lastName,
-        middleName: middleName || '',
-        location: processedLocation,
-      },
-      createdAt: new Date(),
-    });
+    // Generate unique username with retry logic
+    let username;
+    let userCreated = false;
+    let user;
+    let attempts = 0;
+    const maxAttempts = 5;
 
-    // Generate username
-    const username = `user_${user._id.toString().slice(0, 6)}`;
-    user.username = username;
+    while (!userCreated && attempts < maxAttempts) {
+      try {
+        // Generate a temporary ObjectId for username generation
+        const tempId = new mongoose.Types.ObjectId();
+        username = `user_${tempId.toString().slice(0, 6)}`;
 
-    //  Generate token and add to session
+        // Check if username is already taken
+        const usernameExists = await User.findOne({ username });
+        if (usernameExists) {
+          attempts++;
+          continue;
+        }
+
+        // Create user with username in a single operation
+        user = await User.create({
+          email,
+          password,
+          username, // Include username here
+          profile: {
+            firstName,
+            lastName,
+            middleName: middleName || '',
+            location: processedLocation,
+          },
+          createdAt: new Date(),
+        });
+
+        userCreated = true;
+      } catch (err) {
+        if (err.code === 11000 && err.keyPattern.username) {
+          // Duplicate username, retry with a new one
+          attempts++;
+          continue;
+        }
+        throw err; // Rethrow other errors
+      }
+    }
+
+    if (!userCreated) {
+      return res.status(500).json({ success: false, message: 'Failed to generate unique username after multiple attempts' });
+    }
+
+    // Generate token and add to session
     const token = generateToken(user._id);
-    user.sessions = [{
-      token,
-      device: req.headers['user-agent'] || 'unknown',
-      ipAddress: req.ip,
-      lastActive: new Date(),
-      active: true,
-    }]
+    user.sessions = [
+      {
+        token,
+        device: req.headers['user-agent'] || 'unknown',
+        ipAddress: req.ip,
+        lastActive: new Date(),
+        active: true,
+      },
+    ];
 
     // Generate and send verification code
     const verificationToken = user.createVerificationToken();
-
     await user.save({ validateBeforeSave: false });
 
     try {

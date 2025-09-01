@@ -164,7 +164,11 @@ export default function Profile() {
             />
 
             {/* finish up */}
-            <ProfileReminder user={user} colors={colors} />
+            <ProfileReminder 
+               user={user} 
+               colors={colors} 
+               router={router}
+            />
             
             <View style={styles.viewToggleContainer}>
               <TouchableOpacity onPress={toggleViewMode} style={styles.viewToggleButton}>

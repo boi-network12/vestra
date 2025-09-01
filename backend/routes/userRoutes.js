@@ -6,6 +6,7 @@ const {
   checkUsernameAvailability,
   checkEmailAvailability,
   checkPhoneAvailability,
+  getOtherUserDetails,
 } = require('../controllers/userController');
 const { protect, restrictTo } = require('../middleware/authMiddleware');
 const { uploadMedia } = require('../middleware/uploadMiddleware')
@@ -19,5 +20,7 @@ router.get('/check-username', checkUsernameAvailability);
 router.get('/check-email', checkEmailAvailability);
 router.get('/check-phone', checkPhoneAvailability);
 
+// New endpoint for fetching other user details
+router.get('/user-detail/:userId', getOtherUserDetails);
 
 module.exports = router;

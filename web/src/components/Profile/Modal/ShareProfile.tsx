@@ -108,7 +108,7 @@ const ShareProfile = forwardRef<ShareProfileRef, ShareProfileProps>(({ user }, r
         <div className="flex justify-center mb-4">
           <div className="relative w-20 h-20 sm:w-24 sm:h-24">
             <Image
-              src={user?.profile?.avatar || 'https://via.placeholder.com/150'}
+              src={user?.profile?.avatar || ''}
               alt={`${user?.username}'s avatar`}
               fill
               className="rounded-full object-cover"

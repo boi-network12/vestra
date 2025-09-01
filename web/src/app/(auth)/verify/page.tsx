@@ -17,6 +17,7 @@ export default function Verify() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [email, setEmail] = useState("");
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [hasRedirected, setHasRedirected] = useState(false);
 
   useEffect(() => {
   const handler = setTimeout(() => {
@@ -32,10 +33,16 @@ export default function Verify() {
   }, [searchParams]);
 
   useEffect(() => {
-  if (user && user.isVerified === true && pathname !== "/home") {
-    router.replace("/home");
-  }
-}, [user, pathname, router]);
+    if (user && user.isVerified === true && pathname !== "/home" && !hasRedirected) {
+      console.log("Redirecting to /home"); // Debug log
+      setHasRedirected(true);
+      router.replace("/home");
+    }
+    return () => {
+      console.log("Cleaning up Verify useEffect");
+      setHasRedirected(false); // Reset on unmount
+    };
+  }, [user, pathname, router, hasRedirected]);
 
 
   useEffect(() => {
@@ -62,7 +69,7 @@ export default function Verify() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    if (!validateForm() || isLoading) return;
 
     const success = await verifyUser(code);
     if (success) {
