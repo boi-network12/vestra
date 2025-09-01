@@ -5,6 +5,7 @@ import { createContext, useContext, useState } from 'react';
 import { API_URL } from '../config/apiConfig';
 import { AuthContext } from './AuthContext';
 
+
 export const UserContext = createContext();
 
 export const UserProvider = ({ children }) => {

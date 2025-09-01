@@ -17,32 +17,27 @@ export default function Verify() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [email, setEmail] = useState("");
   const [resendCooldown, setResendCooldown] = useState(0);
-  const [hasRedirected, setHasRedirected] = useState(false);
 
   useEffect(() => {
-  const handler = setTimeout(() => {
-      const emailFromParams = searchParams.get("email");
-      const emailFromStorage = localStorage.getItem("pendingVerificationEmail");
-      if (emailFromParams) {
-        setEmail(decodeURIComponent(emailFromParams));
-      } else if (emailFromStorage) {
-        setEmail(emailFromStorage);
-      }
-    }, 100);
-    return () => clearTimeout(handler);
-  }, [searchParams]);
+  const emailFromParams = searchParams.get("email");
+  const emailFromStorage = localStorage.getItem("pendingVerificationEmail");
+  if (emailFromParams) {
+    setEmail(decodeURIComponent(emailFromParams));
+  } else if (emailFromStorage) {
+    setEmail(emailFromStorage);
+  }
+}, [searchParams]);
 
   useEffect(() => {
-    if (user && user.isVerified === true && pathname !== "/home" && !hasRedirected) {
-      console.log("Redirecting to /home"); // Debug log
-      setHasRedirected(true);
+  if (user && user.isVerified === true && pathname !== "/home") {
+    const redirected = localStorage.getItem("hasRedirected");
+    if (!redirected) {
+      console.log("Redirecting to /home");
+      localStorage.setItem("hasRedirected", "true");
       router.replace("/home");
     }
-    return () => {
-      console.log("Cleaning up Verify useEffect");
-      setHasRedirected(false); // Reset on unmount
-    };
-  }, [user, pathname, router, hasRedirected]);
+  }
+}, [user, pathname, router]);
 
 
   useEffect(() => {

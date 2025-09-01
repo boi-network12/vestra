@@ -6,77 +6,102 @@ const Notification = require('../models/Notification');
 const { addNotificationToQueue } = require("../jobs/notificationJob");
 const { RateLimiterMemory } = require("rate-limiter-flexible");
 
-const followLimiter = new RateLimiterMemory({
-  points: 50,
-  duration: 3600
-})
+const followLimiter = new RateLimiterMemory({ points: 50, duration: 3600 });
+const blockLimiter = new RateLimiterMemory({ points: 20, duration: 3600 });
+const unfollowLimiter = new RateLimiterMemory({ points: 50, duration: 3600 });
 
 // get suggested users (instagram like algorithm)
+// In friendController.js
 exports.getSuggestedUsers = async (req, res) => {
   try {
     const { page = 1, limit = 20 } = req.query;
-    const currentUser = await User.findById(req.user._id).select(
-      'following followers blockedUsers profile.interests profile.location profile.culturalBackground'
-    );
+    const currentUser = await User.findById(req.user._id);
 
     if (!currentUser) {
-      return res.status(404).json({ success: false, message: 'User not found' });
+      return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    // Fetch all users who are not deleted, not the current user, not followed, and not blocked
+    // Fetch all users except the current user, blocked users, deleted users, and users already followed
     const users = await User.find({
       _id: { $ne: currentUser._id },
       isDelete: { $ne: true },
-      blockedUsers: { $ne: currentUser._id }, // Exclude users who blocked the current user
-      $nor: [
-        { _id: { $in: currentUser.following } }, 
-        { _id: { $in: currentUser.blockedUsers } }, // Exclude users blocked by the current user
-      ],
-    }).select(
-      'username profile.firstName profile.lastName profile.avatar profile.bio privacySettings.profileVisibility followers'
+      _id: { $nin: currentUser.blockedUsers },
+      _id: { $nin: currentUser.following }, // Exclude users the current user is already following
+    })
+      .select("username profile followers following privacySettings")
+      .lean();
+
+    // Debugging: Log the number of users fetched
+    console.log(`Fetched ${users.length} users for suggestions`);
+
+    // Calculate relevance scores and follow status
+    const scoredUsers = await Promise.all(
+      users.map(async (user) => {
+        const score = await calculateRelevanceScore(currentUser, user);
+
+        // Determine follow status
+        let followStatus = "FOLLOW";
+        const isFollowedBy = user.followers.includes(currentUser._id.toString());
+        const pendingRequest = await Notification.findOne({
+          userId: user._id,
+          type: "follow_request",
+          relatedId: currentUser._id,
+        });
+
+        if (pendingRequest && user.privacySettings.profileVisibility === "private") {
+          followStatus = "REQUESTED";
+        } else if (isFollowedBy && !currentUser.following.includes(user._id.toString())) {
+          followStatus = "FOLLOW_BACK";
+        } else if (currentUser.following.includes(user._id.toString())) {
+          followStatus = "FOLLOWING";
+        }
+
+        // Debugging: Log follow status for each user
+        console.log(`User ${user._id}: isFollowedBy=${isFollowedBy}, followStatus=${followStatus}`);
+
+        return {
+          ...user,
+          relevanceScore: score,
+          followStatus,
+          isMutual: currentUser.following.includes(user._id.toString()) && isFollowedBy,
+        };
+      })
     );
 
-    // Calculate relevance scores and add isFollowingCurrentUser flag
-    const suggestedUsers = users.map((user) => {
-      const score = calculateRelevanceScore(currentUser, user);
-      return {
-        _id: user._id,
-        username: user.username,
-        profile: {
-          firstName: user.profile.firstName,
-          lastName: user.profile.lastName,
-          avatar: user.profile.avatar,
-          bio: user.profile.bio,
-        },
-        privacySettings: {
-          profileVisibility: user.privacySettings.profileVisibility,
-        },
-        isFollowingCurrentUser: user.followers.includes(currentUser._id),
-        score,
-      };
-    });
+    // Sort users by relevance score and paginate
+    const sortedUsers = scoredUsers
+      .sort((a, b) => b.relevanceScore - a.relevanceScore)
+      .slice((page - 1) * limit, page * limit);
 
-    // Sort by relevance score (descending) and apply pagination
-    const sortedUsers = suggestedUsers.sort((a, b) => b.score - a.score);
-    const paginatedUsers = sortedUsers.slice((page - 1) * limit, page * limit);
+    // Format response
+    const formattedUsers = sortedUsers.map((user) => ({
+      _id: user._id,
+      username: user.username,
+      firstName: user.profile.firstName,
+      lastName: user.profile.lastName,
+      avatar: user.profile.avatar,
+      bio: user.profile.bio,
+      followStatus: user.followStatus,
+      isMutual: user.isMutual,
+    }));
 
     return res.json({
       success: true,
-      data: paginatedUsers,
+      data: formattedUsers,
       meta: {
-        total: sortedUsers.length,
+        total: scoredUsers.length,
         page: parseInt(page),
         limit: parseInt(limit),
-        totalPages: Math.ceil(sortedUsers.length / limit),
+        totalPages: Math.ceil(scoredUsers.length / limit),
       },
-      message: 'Suggested users fetched successfully',
+      message: "Suggested users fetched successfully",
     });
   } catch (err) {
-    console.error('Get suggested users error:', {
-      message: err.message || 'Unknown error',
+    console.error("Get suggested users error:", {
+      message: err.message || "Unknown error",
       stack: err.stack,
     });
-    return res.status(500).json({ success: false, message: 'Server error' });
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -88,14 +113,21 @@ exports.followUser = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid or missing userId" });
     }
 
-    const currentUser = await User.findById(req.user._id);
-    const userToFollow = await User.findById(userId);
+    // Apply rate limiting
+    try {
+      await followLimiter.consume(req.ip);
+    } catch (rateErr) {
+      return res.status(429).json({ success: false, message: "Too many follow requests. Try again later." });
+    }
 
-    if (!userToFollow || userToFollow.isDelete) {
+    const currentUser = await User.findById(req.user._id);
+    const targetUser = await User.findById(userId);
+
+    if (!targetUser || targetUser.isDelete) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    if (currentUser._id.equals(userToFollow._id)) {
+    if (currentUser._id.equals(targetUser._id)) {
       return res.status(400).json({ success: false, message: "Cannot follow yourself" });
     }
 
@@ -103,76 +135,105 @@ exports.followUser = async (req, res) => {
       return res.status(400).json({ success: false, message: "Already following this user" });
     }
 
-    if (userToFollow.blockedUsers.includes(currentUser._id)) {
-      return res.status(403).json({ success: false, message: "You are blocked by this user" });
+    // Check if there's a pending follow request
+    const existingRequest = await Notification.findOne({
+      userId: targetUser._id,
+      type: "follow_request",
+      relatedId: currentUser._id,
+    });
+
+    if (existingRequest) {
+      return res.status(400).json({ success: false, message: "Follow request already sent" });
     }
 
-    // Rate limiting
-    try {
-      await followLimiter.consume(currentUser._id);
-    } catch (rlErr) {
-      console.error('Rate limit error:', {
-        userId: currentUser._id,
-        message: rlErr.message,
-      });
-      return res.status(429).json({
-        success: false,
-        message: "Follow limit exceeded: Maximum 50 follows per hour",
-      });
-    }
-
-    if (userToFollow.privacySettings.profileVisibility === "private") {
-      await addNotificationToQueue({
-        userId: userToFollow._id,
-        type: "follow_request",
-        message: `${currentUser.username} wants to follow you`,
-        relatedId: currentUser._id,
-        relatedModel: "User",
-      });
-      return res.json({
-        success: true,
-        message: "Follow request sent. Waiting for approval.",
-      });
-    }
-
-    // Update following and followers with optimistic concurrency
     const session = await mongoose.startSession();
     try {
       await session.withTransaction(async () => {
-        await User.findOneAndUpdate(
-          { _id: currentUser._id, following: { $ne: userId } },
-          { $push: { following: userToFollow._id } },
-          { session }
-        );
-        await User.findOneAndUpdate(
-          { _id: userId, followers: { $ne: currentUser._id } },
-          { $push: { followers: currentUser._id } },
-          { session }
-        );
-      });
+        let followStatus;
+        if (targetUser.privacySettings.profileVisibility === "private") {
+          // Create a follow request notification
+          await Notification.create(
+            [{
+              userId: targetUser._id,
+              type: "follow_request",
+              relatedId: currentUser._id,
+              message: `${currentUser.username} requested to follow you`,
+            }],
+            { session }
+          );
 
-      await UserHistory.create({
-        userId: currentUser._id,
-        field: "following",
-        oldValue: "",
-        newValue: userToFollow._id.toString(),
-        ipAddress: req.ip,
-        device: req.headers["user-agent"] || "unknown",
-      });
+          await addNotificationToQueue({
+            userId: targetUser._id,
+            type: "follow_request",
+            message: `${currentUser.username} requested to follow you`,
+            relatedId: currentUser._id,
+          });
 
-      if (userToFollow.notificationSettings.follows) {
-        await addNotificationToQueue({
-          userId: userToFollow._id,
-          type: "follow",
-          message: `${currentUser.username} started following you`,
-          relatedId: currentUser._id,
-          relatedModel: "User",
+          // Log in UserHistory
+          await UserHistory.create(
+            [{
+              userId: currentUser._id,
+              field: "follow_request_sent",
+              oldValue: "",
+              newValue: targetUser._id.toString(),
+              ipAddress: req.ip,
+              device: req.headers["user-agent"] || "unknown",
+            }],
+            { session }
+          );
+
+          followStatus = "REQUESTED";
+        } else {
+          // Direct follow for public or followers-only profiles
+          currentUser.following.push(targetUser._id);
+          targetUser.followers.push(currentUser._id);
+
+          await Promise.all([
+            currentUser.save({ session }),
+            targetUser.save({ session }),
+          ]);
+
+          // Create follow notification
+          await Notification.create(
+            [{
+              userId: targetUser._id,
+              type: "follow",
+              relatedId: currentUser._id,
+              message: `${currentUser.username} started following you`,
+            }],
+            { session }
+          );
+
+          await addNotificationToQueue({
+            userId: targetUser._id,
+            type: "follow",
+            message: `${currentUser.username} started following you`,
+            relatedId: currentUser._id,
+          });
+
+          // Log in UserHistory
+          await UserHistory.create(
+            [{
+              userId: currentUser._id,
+              field: "following",
+              oldValue: "",
+              newValue: targetUser._id.toString(),
+              ipAddress: req.ip,
+              device: req.headers["user-agent"] || "unknown",
+            }],
+            { session }
+          );
+
+          followStatus = "FOLLOWING";
+        }
+
+        return res.json({
+          success: true,
+          message: followStatus === "REQUESTED"
+            ? `Follow request sent to ${targetUser.username}`
+            : `Now following ${targetUser.username}`,
+          followStatus,
         });
-      }
-
-      return res.json({
-        success: true,
-        message: `Now following ${userToFollow.username}`,
       });
     } finally {
       session.endSession();

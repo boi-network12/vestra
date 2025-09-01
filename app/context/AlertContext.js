@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useState } from "react";
 import {} from "react-native";
 
 // create the alertContext
-const AlertContext = createContext();
+export const AlertContext = createContext();
 
 // AlertProvider components to wrap the app
 export const AlertProvider = ({ children }) => {

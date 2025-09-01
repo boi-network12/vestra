@@ -172,7 +172,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const checkAuth = useCallback(
   async () => {
     const token = localStorage.getItem("token");
-    if (!token || user) return; // Skip if user is already set
+    if (!token) return; // Skip if user is already set
     setIsLoading(true);
     try {
       const response = await axios.get(`${API_URL}/api/users/me`, {
@@ -199,7 +199,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(false);
     }
   },
-  [user, fetchLinkedAccounts]
+  [fetchLinkedAccounts]
 );
 
   const login = async (data: LoginData): Promise<boolean> => {
@@ -446,6 +446,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       );
 
       localStorage.removeItem("token");
+      localStorage.removeItem("hasRedirected")
       setUser(null);
       setLinkedAccounts([]);
       setError(null);

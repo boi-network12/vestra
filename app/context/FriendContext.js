@@ -1,13 +1,13 @@
-import { createContext, useCallback, useState } from "react";
-import { useAuth } from "../hooks/useAuth";
+import { createContext, useCallback, useContext, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { API_URL } from "../config/apiConfig";
+import { AlertContext } from "./AlertContext";
 
 export const FriendContext = createContext();
 
 export const FriendProvider = ({ children }) => {
-  const { showAlert, hideAlert } = useAuth();
+  const { showAlert, hideAlert } = useContext(AlertContext);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [suggestedUsers, setSuggestedUsers] = useState([]);
@@ -22,8 +22,9 @@ export const FriendProvider = ({ children }) => {
   });
 
   // Get suggested users
-  const getSuggestedUsers = useCallback(async () => {
+  const getSuggestedUsers = useCallback(async (page = 1, limit = 20) => {
     setIsLoading(true);
+    setError(null)
     try {
       const token = await AsyncStorage.getItem("token");
       if (!token) {
@@ -31,114 +32,89 @@ export const FriendProvider = ({ children }) => {
       }
 
       const response = await axios.get(`${API_URL}/api/friends/suggested`, {
+        params: { page, limit },
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if (response.data.success) {
-        console.log('Suggested Users:', response.data.data);
         setSuggestedUsers(response.data.data);
-        setError(null);
+        console.log("Suggested users fetched successfully");
         return {
           success: true,
           data: response.data.data,
           meta: response.data.meta,
         };
       } else {
-        throw new Error("Failed to fetch suggested users");
+        throw new Error(response.data.message || "Failed to fetch suggested users");
       }
     } catch (err) {
-      const errorMsg =
-        err.response?.data?.message || "Failed to fetch suggested users";
+      const errorMsg = err.response?.data?.message || err.message || "Failed to fetch suggested users";
       setError(errorMsg);
-      showAlert(errorMsg, "error");
+      console.error("Get suggested users error:", errorMsg);
       return { success: false, message: errorMsg };
     } finally {
       setIsLoading(false);
     }
-  }, [showAlert]);
+  }, []);
 
   const validateUserId = (userId) => {
     return typeof userId === 'string' && userId.length === 24; // MongoDB ObjectId length
   };
 
   // Follow a user
-const followUser = async (userId) => {
-  console.log('Following user:', userId);
-  if (!validateUserId(userId)) {
-    const errorMsg = 'Invalid user ID';
-    setError(errorMsg);
-    if (showAlert) {
-      showAlert(errorMsg, 'error');
-    } else {
-      console.warn('showAlert is undefined, unable to display error alert');
+  const followUser = async (userId) => {
+    if (!validateUserId(userId)) {
+      setError("Invalid user ID");
+      console.error("Invalid user ID");
+      return { success: false, message: "Invalid user ID" };
     }
-    return { success: false, message: errorMsg };
-  }
-  setIsLoading(true);
-  try {
-    const token = await AsyncStorage.getItem('token');
-    console.log('Token:', token);
-    if (!token) {
-      throw new Error('No authentication token found');
-    }
-
-    // Optimistic update
-    setFollowing((prev) => {
-      console.log('Optimistic update: Adding userId', userId, 'to following');
-      return [...prev, { _id: userId }];
-    });
-    setError(null);
-
-    const response = await axios.post(
-      `${API_URL}/api/friends/follow`,
-      { userId },
-      {
-        headers: { Authorization: `Bearer ${token}` },
-        timeout: 10000, // Set a 10-second timeout to handle slow responses
+    setIsLoading(true);
+    setError(null)
+    try {
+      const token = await AsyncStorage.getItem("token");
+      if (!token) {
+        throw new Error("No authentication token found");
       }
-    );
 
-    console.log('Follow response:', response.data);
+      const response = await axios.post(
+        `${API_URL}/api/friends/follow`,
+        { userId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-    if (response.data.success) {
-      console.log('Follow successful, refreshing following and suggested users');
-      try {
-        await Promise.all([getFollowing(), getSuggestedUsers()]); // Refresh lists
-      } catch (refreshErr) {
-        console.error('Error refreshing lists:', refreshErr);
-        // Don't throw here to avoid marking the follow as failed
-      }
-      if (showAlert) {
-        showAlert(response.data.message, 'success');
+      if (response.data.success) {
+        // Update suggestedUsers with new followStatus
+        setSuggestedUsers((prev) =>
+          prev.map((user) =>
+            user._id === userId ? { ...user, followStatus: response.data.followStatus } : user
+          )
+        );
+        // Update following or pendingFollowRequests based on followStatus
+        if (response.data.followStatus === "FOLLOWING") {
+          setFollowing((prev) => [...prev, { _id: userId }]);
+        } else if (response.data.followStatus === "REQUESTED") {
+          setPendingFollowRequests((prev) => [...prev, { user: { _id: userId } }]);
+        }
+        console.log(response.data.message);
+        // Refresh relevant lists
+        await Promise.all([getSuggestedUsers(), getFollowing(), getPendingFollowRequests()]);
+        return {
+          success: true,
+          message: response.data.message,
+          followStatus: response.data.followStatus,
+        };
       } else {
-        console.warn('showAlert is undefined, unable to display success alert');
+        throw new Error(response.data.message || "Failed to follow user");
       }
-      return { success: true, message: response.data.message };
-    } else {
-      throw new Error(response.data.message || 'Failed to follow user');
+    } catch (err) {
+      const errorMsg = err.response?.data?.message || err.message || "Failed to follow user";
+      setError(errorMsg);
+      console.error("Follow user error:", errorMsg);
+      return { success: false, message: errorMsg };
+    } finally {
+      setIsLoading(false);
     }
-  } catch (err) {
-    console.error('Follow user error:', {
-      message: err.message,
-      response: err.response?.data,
-      status: err.response?.status,
-    });
-    setFollowing((prev) => {
-      console.log('Reverting optimistic update for userId', userId);
-      return prev.filter((user) => user._id !== userId);
-    });
-    const errorMsg = err.response?.data?.message || 'Failed to follow user';
-    setError(errorMsg);
-    if (showAlert) {
-      showAlert(errorMsg, 'error');
-    } else {
-      console.warn('showAlert is undefined, unable to display error alert:', errorMsg);
-    }
-    return { success: false, message: errorMsg };
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   // Accept follow request
   const acceptFollowRequest = async (userId) => {
@@ -265,12 +241,26 @@ const followUser = async (userId) => {
 
   // In FriendProvider.js
 const cancelFollowRequest = async (userId) => {
+  if (!validateUserId(userId)) {
+    setError("Invalid user ID");
+    showAlert("Invalid user ID", "error");
+    return { success: false, message: "Invalid user ID" };
+  }
   setIsLoading(true);
   try {
     const token = await AsyncStorage.getItem("token");
     if (!token) {
       throw new Error("No authentication token found");
     }
+
+    // Optimistically update both pendingFollowRequests and suggestedUsers
+    setPendingFollowRequests((prev) => prev.filter((req) => req.user._id !== userId));
+    setSuggestedUsers((prev) =>
+      prev.map((user) =>
+        user._id === userId ? { ...user, followStatus: "FOLLOW" } : user
+      )
+    );
+    setError(null);
 
     const response = await axios.post(
       `${API_URL}/api/friends/cancel-follow-request`,
@@ -279,19 +269,19 @@ const cancelFollowRequest = async (userId) => {
     );
 
     if (response.data.success) {
-      setError(null);
       showAlert(response.data.message, "success");
-      // Refresh pending follow requests
-      await getPendingFollowRequests();
+      // Refresh suggestedUsers to ensure consistency with backend
+      await getSuggestedUsers();
       return { success: true, message: response.data.message };
     } else {
       throw new Error("Failed to cancel follow request");
     }
   } catch (err) {
-    const errorMsg =
-      err.response?.data?.message || "Failed to cancel follow request";
+    const errorMsg = err.response?.data?.message || "Failed to cancel follow request";
     setError(errorMsg);
     showAlert(errorMsg, "error");
+    // Revert optimistic updates on error
+    await Promise.all([getPendingFollowRequests(), getSuggestedUsers()]);
     return { success: false, message: errorMsg };
   } finally {
     setIsLoading(false);
@@ -299,43 +289,53 @@ const cancelFollowRequest = async (userId) => {
 };
 
   // Unfollow a user
-  const unfollowUser = async (userId) => {
-    if (!validateUserId(userId)) {
-      setError("Invalid user ID");
-      showAlert("Invalid user ID", "error");
-      return { success: false, message: "Invalid user ID" };
+const unfollowUser = async (userId) => {
+  if (!validateUserId(userId)) {
+    setError("Invalid user ID");
+    showAlert("Invalid user ID", "error");
+    return { success: false, message: "Invalid user ID" };
+  }
+  setIsLoading(true);
+  try {
+    const token = await AsyncStorage.getItem("token");
+    if (!token) {
+      throw new Error("No authentication token found");
     }
-    setIsLoading(true);
-    try {
-      const token = await AsyncStorage.getItem("token");
-      if (!token) {
-        throw new Error("No authentication token found");
-      }
 
-      const response = await axios.post(
-        `${API_URL}/api/friends/unfollow`,
-        { userId },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+    // Optimistically update both following and suggestedUsers
+    setFollowing((prev) => prev.filter((user) => user._id !== userId));
+    setSuggestedUsers((prev) =>
+      prev.map((user) =>
+        user._id === userId ? { ...user, followStatus: "FOLLOW" } : user
+      )
+    );
+    setError(null);
 
-      if (response.data.success) {
-        setError(null);
-        showAlert(response.data.message, "success");
-        // Refresh following list
-        await Promise.all([getFollowing(), getSuggestedUsers()]);
-        return { success: true, message: response.data.message };
-      } else {
-        throw new Error("Failed to unfollow user");
-      }
-    } catch (err) {
-      const errorMsg = err.response?.data?.message || "Failed to unfollow user";
-      setError(errorMsg);
-      showAlert(errorMsg, "error");
-      return { success: false, message: errorMsg };
-    } finally {
-      setIsLoading(false);
+    const response = await axios.post(
+      `${API_URL}/api/friends/unfollow`,
+      { userId },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    if (response.data.success) {
+      showAlert(response.data.message, "success");
+      // Refresh suggestedUsers to ensure consistency with backend
+      await getSuggestedUsers();
+      return { success: true, message: response.data.message };
+    } else {
+      throw new Error("Failed to unfollow user");
     }
-  };
+  } catch (err) {
+    const errorMsg = err.response?.data?.message || "Failed to unfollow user";
+    setError(errorMsg);
+    showAlert(errorMsg, "error");
+    // Revert optimistic updates on error
+    await Promise.all([getFollowing(), getSuggestedUsers()]);
+    return { success: false, message: errorMsg };
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   // Get following list
   const getFollowing = async (page = 1, limit = 20) => {

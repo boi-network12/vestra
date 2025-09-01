@@ -22,11 +22,17 @@ transporter.verify((error) => {
 
 // Helper function to compile template
 const compileTemplate = (templateName, context) => {
-  const filePath = path.join(__dirname, 'emailTemplates', `${templateName}.handlebars`);
-  const source = fs.readFileSync(filePath, 'utf8');
-  const template = handlebars.compile(source);
-  return template(context);
+  try {
+    const filePath = path.join(__dirname, 'emailTemplates', `${templateName}.handlebars`);
+    const source = fs.readFileSync(filePath, 'utf8');
+    const template = handlebars.compile(source);
+    return template(context);
+  } catch (err) {
+    console.error(`Template ${templateName} not found:`, err);
+    return `<p>${context.message || 'No message available'}</p>`;
+  }
 };
+
 
 // Send verification email
 exports.sendVerificationEmail = async (email, name, code) => {

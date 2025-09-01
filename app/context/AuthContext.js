@@ -2,9 +2,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import * as Location from 'expo-location';
-import { createContext, useCallback, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { API_URL } from '../config/apiConfig';
 import { router } from "expo-router";
+import { FriendContext } from './FriendContext';
 
 
 export const AuthContext = createContext();
@@ -16,6 +17,7 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [alert, setAlert] = useState({ visible: false, message: '', type: 'info' });
+  const { getSuggestedUsers } = useContext(FriendContext);
 
   const getUserLocation = async () => {
   try {
@@ -203,6 +205,7 @@ export const AuthProvider = ({ children }) => {
           headers: { Authorization: `Bearer ${token}` },
         });
         setUser(response.data.data);
+        getSuggestedUsers()
         setError(null);
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to fetch profile');

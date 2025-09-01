@@ -11,34 +11,36 @@ import CustomAlert from '../components/custom/CustomAlert'
 import { FriendProvider } from '../context/FriendContext'
 
 const AppContent = () => {
-    return (
-        <ThemeProvider>
-            <AuthProvider>
-                <UserProvider>
-                    <FriendProvider>
-                        <AlertProvider>
-                            <Host>
-                            <Stack screenOptions={{ 
-                                headerShown: false,
-                                animation: 'fade',
-                                contentStyle: {
-                                    backgroundColor: "transparent"
-                                }
-                            }} />
-                            <CustomAlert />
-                        </Host>
-                        </AlertProvider>
-                    </FriendProvider>
-                </UserProvider>
-            </AuthProvider>
-        </ThemeProvider>
-    )
-}
+  return (
+    <ThemeProvider>
+      <AlertProvider>
+        <FriendProvider>
+          <AuthProvider>
+            <UserProvider>
+              <Host>
+                <Stack
+                  screenOptions={{
+                    headerShown: false,
+                    animation: 'fade',
+                    contentStyle: {
+                      backgroundColor: 'transparent',
+                    },
+                  }}
+                />
+                <CustomAlert />
+              </Host>
+            </UserProvider>
+          </AuthProvider>
+        </FriendProvider>
+      </AlertProvider>
+    </ThemeProvider>
+  );
+};
 
 export default function RootLayout() {
-    return (
-        <GestureHandlerRootView style={{ flex: 1 }}>
-            <AppContent />
-        </GestureHandlerRootView>
-    )
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AppContent />
+    </GestureHandlerRootView>
+  );
 }
