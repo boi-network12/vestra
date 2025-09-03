@@ -3,12 +3,21 @@ import { LoginData, User } from '@/types/user';
 import Image from 'next/image';
 import React, { useState } from 'react'
 
+interface LinkedAccount {
+  _id: string;
+  username: string;
+  email: string;
+  profile?: {
+    avatar?: string;
+  };
+}
+
 interface Props {
   open: boolean;
   onClose: () => void;
   user: User | null;
   isLoading: boolean;
-  linkedAccounts?: User[];
+  linkedAccounts?: LinkedAccount[] | undefined;
   switchAccount?: (accountId: string) => Promise<boolean>;
   linkAccount?: (data: LoginData) => Promise<boolean>;
 }

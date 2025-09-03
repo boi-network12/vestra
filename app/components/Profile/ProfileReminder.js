@@ -56,7 +56,7 @@ export default function ProfileReminder({ user, colors, router }) {
                         <View
                             style={[
                                 styles.iconWrapper,
-                                { backgroundColor: withOpacity(colors.background, 0.05) }
+                                { backgroundColor: withOpacity(colors.background, 1) }
                             ]}
                         >
                             <FontAwesome6

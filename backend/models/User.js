@@ -36,12 +36,12 @@ const userSchema = new mongoose.Schema({
   passwordResetToken: String,
   passwordResetExpires: Date,
   profile: {
-    firstName: { type: String, trim: true },
-    lastName: { type: String, trim: true },
-    bio: { type: String, maxlength: 500, trim: true },
+    firstName: { type: String, trim: true, default: '' },
+    lastName: { type: String, trim: true, default: '' },
+    bio: { type: String, maxlength: 500, trim: true, default: '' },
     links: [{
-      title: { type: String, trim: true },
-      url: { type: String, trim: true },
+      title: { type: String, trim: true, default: '' },
+      url: { type: String, trim: true, default: '' },
     }],
     avatar: { type: String, default: '' },
     coverPhoto: { type: String, default: '' },

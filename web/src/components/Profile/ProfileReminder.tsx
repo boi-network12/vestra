@@ -1,16 +1,18 @@
 import { User } from '@/types/user';
 import React from 'react';
 import { FaCheck, FaUserPlus } from "react-icons/fa";
+import { useRouter } from 'next/navigation'; // ✅ for Next.js navigation
 
 interface ProfileReminderProps {
   user: User | null; 
 }
 
 const ProfileReminder: React.FC<ProfileReminderProps> = ({ user }) => {
+  const router = useRouter();
+
   if (!user) return null;
 
-  const followingCount = user.following?.length ?? 0; // ✅ safe check
-  // const postCount = user.posts?.length ?? 0; // Uncomment if you have posts in User type
+  const followingCount = user.following?.length ?? 0;
 
   const reminders = [
     {
@@ -19,15 +21,12 @@ const ProfileReminder: React.FC<ProfileReminderProps> = ({ user }) => {
       buttonTitle: followingCount >= 10 ? 'Done' : 'See Profiles',
       completed: followingCount >= 10,
       icon: followingCount >= 10 ? FaCheck : FaUserPlus,
+      onClick: () => {
+        if (followingCount < 10) {
+          router.push('/users'); // ✅ navigate to /users
+        }
+      }
     },
-    // Uncomment if you want "Create post"
-    // {
-    //   title: 'Create post',
-    //   desc: 'Share your thoughts and experiences',
-    //   buttonTitle: postCount > 0 ? 'Done' : 'Create Post',
-    //   completed: postCount > 0,
-    //   icon: postCount > 0 ? FaCheck : FaUserPlus,
-    // },
   ];
 
   return (
@@ -59,7 +58,7 @@ const ProfileReminder: React.FC<ProfileReminderProps> = ({ user }) => {
                 </div>
               ) : (
                 <button
-                  onClick={() => console.log(`Navigate to: ${item.title}`)}
+                  onClick={item.onClick}
                   className="mt-4 bg-blue-600 text-white rounded-md px-4 py-2 w-full text-center text-sm font-medium hover:bg-blue-500"
                 >
                   {item.buttonTitle}

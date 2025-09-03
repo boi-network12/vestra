@@ -203,77 +203,66 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 );
 
   const login = async (data: LoginData): Promise<boolean> => {
-    setIsLoading(true);
-    try {
-      const location = await getUserLocation();
-      const response = await axios.post(`${API_URL}/api/auth/login`, {
-        ...data,
-        location,
-      });
+  setIsLoading(true);
+  try {
+    const location = await getUserLocation();
+    const response = await axios.post(`${API_URL}/api/auth/login`, {
+      ...data,
+      location,
+    });
 
-      if (response.data.success) {
-        localStorage.setItem("token", response.data.data.token);
-        setUser({
-          _id: response.data.data._id,
-          email: response.data.data.email,
-          username: response.data.data.username,
-          isVerified: response.data.data.isVerified,
-        });
-        setLinkedAccounts([]);
-        setError(null);
-        showAlert(response.data.message || "Login successful!", "success");
-        await checkAuth(); 
-        return true;
-      } else {
-        showAlert(response.data.message || "Login failed", "error");
-        throw new Error(response.data.message || "Login failed");
-      }
-    } catch (err: unknown) {
-      const error = err as AxiosError<ApiErrorResponse>;
-      const errorMsg = error.response?.data?.message || "An error occurred during login";
-      setError(errorMsg);
-      showAlert(errorMsg, "error");
-      return false;
-    } finally {
-      setIsLoading(false);
+    if (response.data.success) {
+      localStorage.setItem("token", response.data.data.token);
+      setError(null);
+      showAlert(response.data.message || "Login successful!", "success");
+      await fetchUser(); // Fetch full user data
+      await fetchLinkedAccounts(response.data.data.token); // Fetch linked accounts
+      return true;
+    } else {
+      showAlert(response.data.message || "Login failed", "error");
+      throw new Error(response.data.message || "Login failed");
     }
-  };
+  } catch (err: unknown) {
+    const error = err as AxiosError<ApiErrorResponse>;
+    const errorMsg = error.response?.data?.message || "An error occurred during login";
+    setError(errorMsg);
+    showAlert(errorMsg, "error");
+    return false;
+  } finally {
+    setIsLoading(false);
+  }
+};
 
 
   const register = async (data: RegisterData): Promise<boolean> => {
-    setIsLoading(true);
-    try {
-      const location = await getUserLocation();
-      const response = await axios.post(`${API_URL}/api/auth/register`, {
-        ...data,
-        location,
-      });
+  setIsLoading(true);
+  try {
+    const location = await getUserLocation();
+    const response = await axios.post(`${API_URL}/api/auth/register`, {
+      ...data,
+      location,
+    });
 
-      if (response.data.success) {
-        localStorage.setItem("token", response.data.data.token);
-        setUser({
-          _id: response.data.data._id,
-          email: response.data.data.email,
-          username: response.data.data.username,
-          isVerified: false,
-        });
-        setLinkedAccounts([]);
-        setError(null);
-        // await checkAuth();
-        return true;
-      } else {
-        throw new Error(response.data.message || "Registration failed");
-      }
-    } catch (err: unknown) {
-      const error = err as AxiosError<ApiErrorResponse>;
-      const errorMsg = error.response?.data?.message || "An error occurred during registration";
-      setError(errorMsg);
-      showAlert(errorMsg, "error");
-      return false;
-    } finally {
-      setIsLoading(false);
+    if (response.data.success) {
+      localStorage.setItem("token", response.data.data.token);
+      setError(null);
+      await fetchUser(); // Fetch full user data
+      setLinkedAccounts([]);
+      showAlert(response.data.message || "Registration successful!", "success");
+      return true;
+    } else {
+      throw new Error(response.data.message || "Registration failed");
     }
-  };
+  } catch (err: unknown) {
+    const error = err as AxiosError<ApiErrorResponse>;
+    const errorMsg = error.response?.data?.message || "An error occurred during registration";
+    setError(errorMsg);
+    showAlert(errorMsg, "error");
+    return false;
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const verifyUser = async (code: string): Promise<boolean> => {
     setIsLoading(true);
@@ -354,42 +343,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const switchAccount = async (accountId: string): Promise<boolean> => {
-    setIsLoading(true);
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error("No token found");
-      }
-
-      const response = await axios.post(
-        `${API_URL}/api/auth/switch-account`,
-        { accountId },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (response.data.success) {
-        localStorage.setItem("token", response.data.data.token);
-        setUser({
-          _id: response.data.data._id,
-          email: response.data.data.email,
-          username: response.data.data.username,
-        });
-        await fetchLinkedAccounts(response.data.data.token);
-        await fetchUser();
-        showAlert(response.data.message || "Switched account successfully!", "success");
-        return true;
-      }
-      throw new Error(response.data.message || "Failed to switch account");
-    } catch (err: unknown) {
-      const error = err as AxiosError<ApiErrorResponse>;
-      const errorMsg = error.response?.data?.message || "Failed to switch account";
-      setError(errorMsg);
-      showAlert(errorMsg, "error");
-      return false;
-    } finally {
-      setIsLoading(false);
+  setIsLoading(true);
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      throw new Error("No token found");
     }
-  };
+
+    const response = await axios.post(
+      `${API_URL}/api/auth/switch-account`,
+      { accountId },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    if (response.data.success) {
+      localStorage.setItem("token", response.data.data.token);
+      setError(null);
+      await fetchUser(); // Fetch full user data
+      await fetchLinkedAccounts(response.data.data.token);
+      showAlert(response.data.message || "Switched account successfully!", "success");
+      return true;
+    }
+    throw new Error(response.data.message || "Failed to switch account");
+  } catch (err: unknown) {
+    const error = err as AxiosError<ApiErrorResponse>;
+    const errorMsg = error.response?.data?.message || "Failed to switch account";
+    setError(errorMsg);
+    showAlert(errorMsg, "error");
+    return false;
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const forgotPassword = async (email: string): Promise<boolean> => {
     setIsLoading(true);

@@ -11,53 +11,75 @@ const blockLimiter = new RateLimiterMemory({ points: 20, duration: 3600 });
 const unfollowLimiter = new RateLimiterMemory({ points: 50, duration: 3600 });
 
 // get suggested users (instagram like algorithm)
-// In friendController.js
 exports.getSuggestedUsers = async (req, res) => {
   try {
-    const { page = 1, limit = 20 } = req.query;
+    const { page = 1, limit = 20, searchQuery = '' } = req.query;
+    
     const currentUser = await User.findById(req.user._id);
 
     if (!currentUser) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    // Fetch all users except the current user, blocked users, deleted users, and users already followed
-    const users = await User.find({
-      _id: { $ne: currentUser._id },
+    // Fetch all users except the current user, blocked users, and deleted users
+    let query = {
+      _id: { $ne: currentUser._id, $nin: currentUser.blockedUsers, $nin: currentUser.following },
       isDelete: { $ne: true },
-      _id: { $nin: currentUser.blockedUsers },
-      _id: { $nin: currentUser.following }, // Exclude users the current user is already following
-    })
+    };
+
+    if (searchQuery) {
+      query.$or = [
+        { username: { $regex: searchQuery, $options: 'i' } },
+        { 'profile.firstName': { $regex: searchQuery, $options: 'i' } },
+        { 'profile.lastName': { $regex: searchQuery, $options: 'i' } },
+      ];
+      query.$or.push({
+        _id: { $in: currentUser.following },
+        followers: currentUser._id, 
+      });
+    } else {
+      query._id.$nin = currentUser.following;
+    }
+
+    // Fetch users based on query
+    const users = await User.find(query)
       .select("username profile followers following privacySettings")
       .lean();
-
-    // Debugging: Log the number of users fetched
-    console.log(`Fetched ${users.length} users for suggestions`);
 
     // Calculate relevance scores and follow status
     const scoredUsers = await Promise.all(
       users.map(async (user) => {
+        if (!user._id) return null;
         const score = await calculateRelevanceScore(currentUser, user);
-
-        // Determine follow status
         let followStatus = "FOLLOW";
-        const isFollowedBy = user.followers.includes(currentUser._id.toString());
+
+        
+        const isFollowedBy = currentUser.followers?.some((id) => id.toString() === user._id.toString());
+        const isFollowing = currentUser.following?.some((id) => id.toString() === user._id.toString());
         const pendingRequest = await Notification.findOne({
           userId: user._id,
-          type: "follow_request",
+          type: 'follow_request',
           relatedId: currentUser._id,
         });
 
-        if (pendingRequest && user.privacySettings.profileVisibility === "private") {
-          followStatus = "REQUESTED";
-        } else if (isFollowedBy && !currentUser.following.includes(user._id.toString())) {
-          followStatus = "FOLLOW_BACK";
-        } else if (currentUser.following.includes(user._id.toString())) {
-          followStatus = "FOLLOWING";
+        // Prioritize mutual status for search results
+        if (isFollowing && isFollowedBy) {
+          followStatus = 'MUTUAL';
+        } else if (pendingRequest && user.privacySettings?.profileVisibility === 'private') {
+          followStatus = 'REQUESTED';
+        } else if (!isFollowing && isFollowedBy) {
+          followStatus = 'FOLLOW_BACK';
+        } else if (isFollowing) {
+          followStatus = 'FOLLOWING';
+        } else {
+          followStatus = 'FOLLOW';
         }
 
-        // Debugging: Log follow status for each user
-        console.log(`User ${user._id}: isFollowedBy=${isFollowedBy}, followStatus=${followStatus}`);
+        // Calculate mutual followers count
+        const mutualFollowersCount = user.followers.filter((followerId) =>
+          currentUser.following.some((followingId) => followingId.toString() === followerId.toString())
+        ).length;
+
 
         return {
           ...user,
@@ -185,8 +207,12 @@ exports.followUser = async (req, res) => {
           followStatus = "REQUESTED";
         } else {
           // Direct follow for public or followers-only profiles
-          currentUser.following.push(targetUser._id);
-          targetUser.followers.push(currentUser._id);
+         if (!currentUser.following.includes(targetUser._id)) {
+            currentUser.following.push(targetUser._id);
+          }
+          if (!targetUser.followers.includes(currentUser._id)) {
+            targetUser.followers.push(currentUser._id);
+          }
 
           await Promise.all([
             currentUser.save({ session }),

@@ -24,7 +24,8 @@ export const FriendProvider = ({ children }) => {
   // Get suggested users
   const getSuggestedUsers = useCallback(async (page = 1, limit = 20) => {
     setIsLoading(true);
-    setError(null)
+    setError(null);
+    setSuggestedUsers([]);
     try {
       const token = await AsyncStorage.getItem("token");
       if (!token) {

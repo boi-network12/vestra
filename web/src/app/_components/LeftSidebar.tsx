@@ -10,7 +10,14 @@ import { useRouter } from 'next/navigation';
 import { Fragment, useMemo, useState } from 'react';
 import { BiPlus } from 'react-icons/bi';
 
-
+interface LinkedAccount {
+  _id: string;
+  username: string;
+  email: string;
+  profile?: {
+    avatar?: string;
+  };
+}
 
 interface LeftSidebarProps {
   isSidebarOpen: boolean;
@@ -20,7 +27,7 @@ interface LeftSidebarProps {
   isLoading: boolean;
   switchAccount?: (accountId: string) => Promise<boolean>;
   linkAccount?: (data: LoginData) => Promise<boolean>;
-  linkedAccounts?: User[];
+  linkedAccounts?: LinkedAccount[] | undefined;
 }
 
 export default function LeftSidebar({ 

@@ -9,6 +9,12 @@ export interface User {
   passwordResetExpires?: Date;
   passwordResetOtp?: string;
   passwordResetOtpExpires?: Date;
+  firstName: string;  
+  lastName: string;    
+  avatar?: string;
+  bio?: string;
+  followStatus?: string;
+  isMutual?: string;
   profile?: {
     firstName?: string;
     lastName?: string;

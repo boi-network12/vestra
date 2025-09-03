@@ -1,5 +1,5 @@
 // SuggestedFriends.js
-import { View, Text, TouchableOpacity, StyleSheet, Image, ActivityIndicator, FlatList, Animated, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image, ActivityIndicator, FlatList, Animated } from 'react-native';
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { heightPercentageToDP as hp } from 'react-native-responsive-screen';
@@ -29,10 +29,10 @@ export default function SuggestedFriends({
   cancelFollowRequest,
   getPendingFollowRequests,
   pendingFollowRequests,
+  searchQuery
 }) {
   const [userStatuses, setUserStatuses] = useState({}); 
   const [hasFetchedPendingRequests, setHasFetchedPendingRequests] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("")
   const [buttonAnimations, setButtonAnimations] = useState({});
   const debounce = useDebounce();
 
@@ -157,7 +157,7 @@ const handleCancelRequest = useMemo(
   const renderUserItem = useCallback(
     ({ item }) => {
       const status = userStatuses[item._id] || { isLoading: false };
-      const buttonState = item.followStatus; 
+      const buttonState = item.followStatus || 'FOLLOW'; 
       const isMutual = item.isMutual;
 
       const buttonConfig = {
@@ -189,6 +189,13 @@ const handleCancelRequest = useMemo(
           color: colors.skeleton,
           textColor: colors.text,
           action: () => handleUnfollow(item._id),
+        },
+          MUTUAL: {
+          icon: 'chatbubbles-outline',
+          text: 'Message',
+          color: colors.primary,
+          textColor: colors.text,
+          action: () => handleMessage(item._id),
         },
       };
 
@@ -261,17 +268,6 @@ const handleCancelRequest = useMemo(
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.searchContainer, { backgroundColor: colors.card }]}>
-        <Ionicons name="search" size={hp(2.2)} color={colors.subText} style={styles.searchIcon} />
-        <TextInput
-          placeholder="Search friends..."
-          placeholderTextColor={colors.subText}
-          style={[styles.searchInput, { color: colors.text }]}
-          value={searchQuery}
-          selectionColor={colors.subText}
-          onChangeText={setSearchQuery}
-        />
-      </View>
 
       {isLoading && <ActivityIndicator size="small" color={colors.primary} style={styles.loader} />}
 
@@ -279,13 +275,13 @@ const handleCancelRequest = useMemo(
         <Text style={[styles.emptyText, { color: colors.subText }]}>No suggested users available.</Text>
       )}
       <FlatList
-        data={filteredUsers}
-        renderItem={renderUserItem}
-        keyExtractor={item => item._id.toString()}
-        contentContainerStyle={styles.listContainer}
-        showsVerticalScrollIndicator={false}
-        extraData={{ userStatuses, suggestedUsers }}
-      />
+          data={filteredUsers}
+          renderItem={renderUserItem}
+          keyExtractor={(item, index) => (item._id ? item._id.toString() : `fallback-${index}`)}
+          contentContainerStyle={styles.listContainer}
+          showsVerticalScrollIndicator={false}
+          extraData={{ userStatuses, suggestedUsers }}
+        />
     </View>
   );
 }
