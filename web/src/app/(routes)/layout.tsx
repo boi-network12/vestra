@@ -1,4 +1,3 @@
-// app/(routes)/layout.tsx
 "use client";
 import ProtectedRoute from "../_components/protected-route";
 import { Trend } from "@/types/trend";
@@ -18,9 +17,9 @@ const trends: Trend[] = [
   { topic: "Next.js", posts: "500K" },
 ];
 
-const noSidebarRoutes = ["/settings"]
-const noTabNeeded = ["/settings", "/users"]
-const noRightSidebar = ["/profile", "/users"]
+const noSidebarRoutes = ["/settings"];
+const noTabNeeded = ["/settings", "/users"];
+const noRightSidebar = ["/profile", "/users"];
 
 export default function ProtectedLayout({ children }: { children: ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -37,7 +36,7 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
 
   return (
     <ProtectedRoute>
-      <div className="flex min-h-screen bg-gray-100">
+      <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
         {/* Hamburger Menu for Tablet/Mobile */}
         {!hideSidebar && (
           <button
@@ -45,7 +44,7 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
             onClick={toggleSidebar}
             aria-label="menu"
           >
-            <IoMenuSharp className="text-xl cursor-pointer text-gray-850" />
+            <IoMenuSharp className="text-xl cursor-pointer text-gray-850 dark:text-gray-200" />
           </button>
         )}
 
@@ -66,7 +65,7 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
         {!hideRightSidebar && <RightSidebar trends={trends} />}
         
         {!hideMobileNavbar && (
-           <MobileNav navItems={mobileNavItems} />
+          <MobileNav navItems={mobileNavItems} />
         )}
       </div>
     </ProtectedRoute>

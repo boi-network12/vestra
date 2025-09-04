@@ -21,10 +21,23 @@ exports.getSuggestedUsers = async (req, res) => {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
+    // ✅ Block unverified users from fetching suggestions
+    if (!currentUser.isVerified) {
+      return res.status(403).json({
+        success: false,
+        message: "Account not verified. Please verify your account to see suggested users."
+      });
+    }
+
     // Fetch all users except the current user, blocked users, and deleted users
     let query = {
-      _id: { $ne: currentUser._id, $nin: currentUser.blockedUsers, $nin: currentUser.following },
+      _id: { 
+        $ne: currentUser._id, 
+        $nin: currentUser.blockedUsers, 
+        $nin: currentUser.following 
+      },
       isDelete: { $ne: true },
+      isVerified: true
     };
 
     if (searchQuery) {

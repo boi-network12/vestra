@@ -1,4 +1,3 @@
-// src/components/Profile/Modal/ShareProfile.tsx
 'use client';
 
 import React, { forwardRef, useImperativeHandle, useRef, useState } from 'react';
@@ -33,33 +32,29 @@ const ShareProfile = forwardRef<ShareProfileRef, ShareProfileProps>(({ user }, r
   const fallbackLink = `myapp://profile/${user?._id}`;
   const shareLink = profileLink || fallbackLink;
 
-  // Share profile link
   const handleShare = async () => {
-  try {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `${user?.username}'s Profile`,
-          text: `Check out my profile: ${fallbackLink}`,
-          url: fallbackLink,
-        });
-      } catch {
-        // User cancelled share or share failed — fallback
+    try {
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: `${user?.username}'s Profile`,
+            text: `Check out my profile: ${fallbackLink}`,
+            url: fallbackLink,
+          });
+        } catch {
+          await navigator.clipboard.writeText(fallbackLink);
+          toast.success('Profile link copied to clipboard!');
+        }
+      } else {
         await navigator.clipboard.writeText(fallbackLink);
         toast.success('Profile link copied to clipboard!');
       }
-    } else {
-      await navigator.clipboard.writeText(fallbackLink);
-      toast.success('Profile link copied to clipboard!');
+    } catch (error) {
+      console.error('Error sharing profile:', error);
+      toast.error('Something went wrong while sharing.');
     }
-  } catch (error) {
-    console.error('Error sharing profile:', error);
-    toast.error('Something went wrong while sharing.');
-  }
-};
+  };
 
-
-  // Copy link to clipboard
   const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(shareLink);
@@ -70,7 +65,6 @@ const ShareProfile = forwardRef<ShareProfileRef, ShareProfileProps>(({ user }, r
     }
   };
 
-  // Download QR Code
   const handleDownload = () => {
     try {
       const canvas = qrRef.current?.querySelector('canvas');
@@ -90,14 +84,14 @@ const ShareProfile = forwardRef<ShareProfileRef, ShareProfileProps>(({ user }, r
 
   return (
     <div
-      className={`fixed inset-0 flex items-center justify-center bg-black/50 bg-opacity-60 transition-opacity duration-300 ${
+      className={`fixed inset-0 flex items-center justify-center bg-black/50 dark:bg-black/60 transition-opacity duration-300 ${
         visible ? 'opacity-100' : 'opacity-0 pointer-events-none'
       } z-50`}
     >
-      <div className="relative w-full max-w-[360px] mx-4 bg-white rounded-2xl shadow-lg p-6 sm:p-8">
+      <div className="relative w-full max-w-[360px] mx-4 bg-white/30 dark:bg-gray-800/30 backdrop-blur-md rounded-2xl shadow-lg p-6 sm:p-8">
         {/* Close Button */}
         <button
-          className="absolute top-4 right-4 text-gray-600 hover:text-gray-800"
+          className="absolute top-4 right-4 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
           onClick={() => setVisible(false)}
           aria-label="Close modal"
         >
@@ -117,36 +111,42 @@ const ShareProfile = forwardRef<ShareProfileRef, ShareProfileProps>(({ user }, r
         </div>
 
         {/* Username */}
-        <h3 className="text-lg sm:text-xl font-semibold text-center text-gray-900">
+        <h3 className="text-lg sm:text-xl font-semibold text-center text-gray-900 dark:text-gray-100">
           @{user?.username || 'user'}
         </h3>
 
         {/* QR Code */}
         <div ref={qrRef} className="flex justify-center my-6">
-          <QRCodeCanvas value={shareLink} size={160} bgColor="transparent" fgColor="#2563EB" level="H" />
+          <QRCodeCanvas
+            value={shareLink}
+            size={160}
+            bgColor="transparent"
+            fgColor="#2563EB"
+            level="H"
+          />
         </div>
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-3">
           <button
-            className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg text-sm font-medium bg-blue-100 text-gray-900 hover:bg-blue-200 transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg text-sm font-medium bg-blue-100 dark:bg-blue-900 text-gray-900 dark:text-gray-100 hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
             onClick={handleShare}
           >
-            <FaShare size={16} className="text-blue-600" />
+            <FaShare size={16} className="text-blue-600 dark:text-blue-400" />
             Share
           </button>
           <button
-            className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg text-sm font-medium bg-blue-100 text-gray-900 hover:bg-blue-200 transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg text-sm font-medium bg-blue-100 dark:bg-blue-900 text-gray-900 dark:text-gray-100 hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
             onClick={handleCopyLink}
           >
-            <FaLink size={16} className="text-blue-600" />
+            <FaLink size={16} className="text-blue-600 dark:text-blue-400" />
             Copy Link
           </button>
           <button
-            className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg text-sm font-medium bg-gamma-100 text-gray-900 hover:bg-blue-200 transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg text-sm font-medium bg-blue-100 dark:bg-blue-900 text-gray-900 dark:text-gray-100 hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
             onClick={handleDownload}
           >
-            <FaDownload size={16} className="text-blue-600" />
+            <FaDownload size={16} className="text-blue-600 dark:text-blue-400" />
             Download
           </button>
         </div>

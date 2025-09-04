@@ -7,6 +7,7 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { User } from "@/types/user";
 import { API_URL } from "@/config/apiConfig";
+import { useFriends } from "@/hooks/FriendHooks";
 
 interface LinkedAccount {
   _id: string;
@@ -67,6 +68,7 @@ interface LoginData {
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const { getSuggestedUsers } = useFriends();
   const [user, setUser] = useState<User | null>(null);
   const [linkedAccounts, setLinkedAccounts] = useState<LinkedAccount[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -216,7 +218,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setError(null);
       showAlert(response.data.message || "Login successful!", "success");
       await fetchUser(); // Fetch full user data
-      await fetchLinkedAccounts(response.data.data.token); // Fetch linked accounts
+      await fetchLinkedAccounts(response.data.data.token); 
+      getSuggestedUsers();
       return true;
     } else {
       showAlert(response.data.message || "Login failed", "error");
@@ -248,7 +251,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setError(null);
       await fetchUser(); // Fetch full user data
       setLinkedAccounts([]);
-      showAlert(response.data.message || "Registration successful!", "success");
       return true;
     } else {
       throw new Error(response.data.message || "Registration failed");
@@ -275,6 +277,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           showAlert(response.data.message || "Account verified successfully!", "success");
           localStorage.removeItem("pendingVerificationEmail");
           fetchUser();
+          getSuggestedUsers();
           return true;
         }
         throw new Error("User not found");

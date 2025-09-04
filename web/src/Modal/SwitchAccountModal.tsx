@@ -1,7 +1,7 @@
 "use client";
 import { LoginData, User } from '@/types/user';
 import Image from 'next/image';
-import React, { useState } from 'react'
+import React, { useState } from 'react';
 
 interface LinkedAccount {
   _id: string;
@@ -22,21 +22,19 @@ interface Props {
   linkAccount?: (data: LoginData) => Promise<boolean>;
 }
 
-
-const SwitchAccountModal = ({ 
-    open, 
-    onClose, 
-    user, 
-    isLoading, 
-    linkedAccounts, 
-    switchAccount, 
-    linkAccount 
+const SwitchAccountModal = ({
+  open,
+  onClose,
+  user,
+  isLoading,
+  linkedAccounts,
+  switchAccount,
+  linkAccount,
 }: Props) => {
   const [showAddAccountForm, setShowAddAccountForm] = useState(false);
   const [form, setForm] = useState<LoginData>({ email: "", password: "" });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
 
   const handleLinkAccount = async () => {
     if (!linkAccount) return;
@@ -44,9 +42,9 @@ const SwitchAccountModal = ({
     setError(null);
     try {
       const ok = await linkAccount(form);
-      if (ok){
+      if (ok) {
         setShowAddAccountForm(false);
-        setForm({ email: "", password: "" })
+        setForm({ email: "", password: "" });
       } else {
         setError("Failed to link account. Please try again.");
       }
@@ -56,7 +54,7 @@ const SwitchAccountModal = ({
     } finally {
       setSubmitting(false);
     }
-  }
+  };
 
   const handleSwitch = async (id: string) => {
     if (!switchAccount) return;
@@ -78,18 +76,18 @@ const SwitchAccountModal = ({
 
   return (
     <div className="fixed inset-0 z-[999] flex items-end md:items-center justify-center">
-      {/* overlay */}
+      {/* Overlay */}
       <div
-        className="absolute inset-0 bg-black/50"
+        className="absolute inset-0 bg-black/50 dark:bg-black/60"
         onClick={!submitting ? onClose : undefined}
       />
-      {/* panel */}
-      <div className="relative z-[1000] w-full md:max-w-md md:rounded-lg bg-white text-gray-900 shadow-lg max-h-[95vh] overflow-y-auto">
-        <header className="flex items-center justify-between p-4 border-b border-gray-200">
-          <h2 className="font-semibold text-base">Switch account</h2>
+      {/* Panel */}
+      <div className="relative z-[1000] w-full md:max-w-md md:rounded-lg bg-white/30 dark:bg-gray-800/30 backdrop-blur-md text-gray-900 dark:text-gray-100 shadow-lg max-h-[95vh] overflow-y-auto">
+        <header className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-600">
+          <h2 className="font-semibold text-base text-gray-900 dark:text-gray-100">Switch account</h2>
           <button
-          disabled={submitting}
-            className="p-1 rounded hover:bg-gray-100"
+            disabled={submitting}
+            className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
             onClick={onClose}
           >
             ✕
@@ -98,7 +96,7 @@ const SwitchAccountModal = ({
 
         <div className="p-4 space-y-4">
           {/* Active account */}
-          <div className="flex items-center gap-3 p-2 rounded hover:bg-gray-50">
+          <div className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700/50">
             {user?.profile?.avatar ? (
               <Image
                 src={user.profile.avatar}
@@ -108,19 +106,19 @@ const SwitchAccountModal = ({
                 className="rounded-full object-cover"
               />
             ) : (
-              <div className="w-9 h-9 rounded-full flex items-center justify-center bg-gray-600 text-white font-bold">
+              <div className="w-9 h-9 rounded-full flex items-center justify-center bg-gray-600 dark:bg-gray-500 text-white font-bold">
                 {firstLetter}
               </div>
             )}
 
             <div className="flex-1">
-              <p className="font-medium text-sm">
+              <p className="font-medium text-sm text-gray-900 dark:text-gray-100">
                 {user?.username ?? "Guest"}
               </p>
-              <p className="text-xs text-gray-500">Active account</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Active account</p>
             </div>
 
-            <span className="text-blue-500 text-sm font-semibold">●</span>
+            <span className="text-blue-500 dark:text-blue-400 text-sm font-semibold">●</span>
           </div>
 
           {/* Linked accounts */}
@@ -129,7 +127,7 @@ const SwitchAccountModal = ({
               {linkedAccounts!.map((acc) => (
                 <button
                   key={acc._id ?? acc.username}
-                  className="w-full flex items-center gap-3 p-2 rounded hover:bg-gray-50"
+                  className="w-full flex items-center gap-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700/50"
                   onClick={() => handleSwitch(acc._id!)}
                   disabled={isLoading || submitting}
                 >
@@ -143,14 +141,14 @@ const SwitchAccountModal = ({
                       />
                     </div>
                   ) : (
-                    <div className="w-9 h-9 rounded-full flex items-center justify-center bg-gray-600 text-white font-bold">
+                    <div className="w-9 h-9 rounded-full flex items-center justify-center bg-gray-600 dark:bg-gray-500 text-white font-bold">
                       {acc.username?.charAt(0)?.toUpperCase()}
                     </div>
                   )}
                   <div className="flex-1 text-left">
-                    <p className="font-medium text-sm">{acc.username}</p>
+                    <p className="font-medium text-sm text-gray-900 dark:text-gray-100">{acc.username}</p>
                     {acc.email && (
-                      <p className="text-xs text-gray-500">{acc.email}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{acc.email}</p>
                     )}
                   </div>
                 </button>
@@ -161,24 +159,24 @@ const SwitchAccountModal = ({
           {/* Add account toggle / form */}
           {!showAddAccountForm ? (
             <button
-              className="w-full flex items-center gap-2 p-2 rounded hover:bg-gray-50 text-gray-600"
+              className="w-full flex items-center gap-2 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-300"
               onClick={() => setShowAddAccountForm(true)}
             >
               <span className="text-xl leading-none">＋</span>
               <span className="text-sm font-medium">Add account</span>
             </button>
           ) : (
-            <div className="border border-gray-200 rounded p-3 space-y-3">
-              <p className="font-medium text-sm">Add New Account</p>
+            <div className="border border-gray-200 dark:border-gray-600 rounded p-3 space-y-3">
+              <p className="font-medium text-sm text-gray-900 dark:text-gray-100">Add New Account</p>
 
               {error && (
-                <p className="text-red-500 text-sm">
+                <p className="text-red-500 dark:text-red-400 text-sm">
                   {error}
                 </p>
               )}
 
               <div className="space-y-2">
-                <label className="text-xs font-medium text-gray-600">
+                <label className="text-xs font-medium text-gray-600 dark:text-gray-300">
                   Email
                 </label>
                 <input
@@ -187,14 +185,14 @@ const SwitchAccountModal = ({
                   onChange={(e) =>
                     setForm((f) => ({ ...f, email: e.target.value }))
                   }
-                  className="w-full rounded border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full rounded border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-300"
                   placeholder="email@example.com"
                   disabled={submitting}
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-medium text-gray-600">
+                <label className="text-xs font-medium text-gray-600 dark:text-gray-300">
                   Password
                 </label>
                 <input
@@ -203,7 +201,7 @@ const SwitchAccountModal = ({
                   onChange={(e) =>
                     setForm((f) => ({ ...f, password: e.target.value }))
                   }
-                  className="w-full rounded border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full rounded border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-300"
                   placeholder="••••••••"
                   disabled={submitting}
                 />
@@ -213,7 +211,7 @@ const SwitchAccountModal = ({
                 <button
                   onClick={handleLinkAccount}
                   disabled={submitting}
-                  className="flex-1 rounded bg-blue-600 hover:bg-blue-700 text-white text-sm py-2 disabled:opacity-50"
+                  className="flex-1 rounded bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-600 text-white text-sm py-2 disabled:opacity-50"
                 >
                   {submitting ? "Linking..." : "Link account"}
                 </button>
@@ -224,7 +222,7 @@ const SwitchAccountModal = ({
                     setForm({ email: "", password: "" });
                   }}
                   disabled={submitting}
-                  className="rounded border border-gray-300 text-gray-600 text-sm py-2 px-3 hover:bg-gray-50 disabled:opacity-50"
+                  className="rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 py-2 px-3 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
                 >
                   Cancel
                 </button>
@@ -234,7 +232,7 @@ const SwitchAccountModal = ({
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default SwitchAccountModal
+export default SwitchAccountModal;

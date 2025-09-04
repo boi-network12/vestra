@@ -7,7 +7,7 @@ interface MainContentProps {
 
 export default function MainContent({ children }: MainContentProps) {
   return (
-    <main className="flex-1 lg:ml-64 lg:mr-80 bg-gray-100">
+    <main className="flex-1 lg:ml-64 lg:mr-80 bg-gray-100 dark:bg-gray-900">
       {children}
     </main>
   );

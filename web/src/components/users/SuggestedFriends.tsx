@@ -43,8 +43,6 @@ interface SuggestedFriendsProps {
   searchQuery: string;
 }
 
-// Debounce hook with generic
-// Fully type-safe debounce hook for async + sync functions
 const useDebounce = () => {
   return useCallback(
     function <Args extends unknown[], R>(
@@ -69,8 +67,6 @@ const useDebounce = () => {
     []
   );
 };
-
-
 
 const SuggestedFriends: FC<SuggestedFriendsProps> = ({
   onToggleHandleAction,
@@ -183,15 +179,15 @@ const SuggestedFriends: FC<SuggestedFriendsProps> = ({
     <div className="w-full px-4 sm:px-6 lg:px-8 py-4">
       {isLoading && (
         <div className="text-center py-4">
-          <span className="loading loading-spinner loading-md"></span>
+          <span className="loading loading-spinner loading-md text-blue-500 dark:text-blue-400"></span>
         </div>
       )}
 
       {!isLoading && filteredUsers.length === 0 && !error && (
-        <p className="text-center text-gray-500">No suggested users available.</p>
+        <p className="text-center text-gray-500 dark:text-gray-400">No suggested users available.</p>
       )}
 
-      {error && <p className="text-center text-red-500">{error}</p>}
+      {error && <p className="text-center text-red-500 dark:text-red-400">{error}</p>}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredUsers.map((user) => {
@@ -203,31 +199,31 @@ const SuggestedFriends: FC<SuggestedFriendsProps> = ({
             FOLLOW: {
               icon: "person-add",
               text: "Follow",
-              class: "bg-blue-500 hover:bg-blue-600 text-white",
+              class: "bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white",
               action: () => handleFollow(user._id!),
             },
             FOLLOW_BACK: {
               icon: "person-add",
               text: "Follow Back",
-              class: "bg-teal-500 hover:bg-teal-600 text-white",
+              class: "bg-teal-500 hover:bg-teal-600 dark:bg-teal-600 dark:hover:bg-teal-700 text-white",
               action: () => handleFollow(user._id!),
             },
             REQUESTED: {
               icon: "time-outline",
               text: "Requested",
-              class: "bg-amber-500 hover:bg-amber-600 text-white opacity-70",
+              class: "bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700 text-white opacity-70",
               action: () => handleCancelRequest(user._id!),
             },
             FOLLOWING: {
               icon: "person-remove",
               text: "Unfollow",
-              class: "bg-gray-500 hover:bg-gray-600 text-white",
+              class: "bg-gray-500 hover:bg-gray-600 dark:bg-gray-600 dark:hover:bg-gray-700 text-white",
               action: () => handleUnfollow(user._id!),
             },
             MUTUAL: {
               icon: "chatbubbles-outline",
               text: "Message",
-              class: "bg-purple-500 hover:bg-purple-600 text-white",
+              class: "bg-purple-500 hover:bg-purple-600 dark:bg-purple-600 dark:hover:bg-purple-700 text-white",
               action: () => handleMessage(user._id!),
             },
           };
@@ -238,7 +234,7 @@ const SuggestedFriends: FC<SuggestedFriendsProps> = ({
           return (
             <div
               key={user._id}
-              className="bg-white border border-gray-300 rounded-xl shadow-sm p-4 flex items-center justify-between"
+              className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm p-4 flex items-center justify-between"
             >
               <div
                 className="flex items-center gap-3 cursor-pointer"
@@ -253,12 +249,12 @@ const SuggestedFriends: FC<SuggestedFriendsProps> = ({
                 />
                 <div>
                   <div className="flex items-center gap-1">
-                    <p className="font-semibold text-gray-800">
+                    <p className="font-semibold text-gray-800 dark:text-gray-100">
                       {user.firstName} {user.lastName}
                     </p>
                     {isMutual && (
                       <svg
-                        className="w-4 h-4 text-blue-500"
+                        className="w-4 h-4 text-blue-500 dark:text-blue-400"
                         fill="currentColor"
                         viewBox="0 0 20 20"
                         xmlns="http://www.w3.org/2000/svg"
@@ -267,9 +263,9 @@ const SuggestedFriends: FC<SuggestedFriendsProps> = ({
                       </svg>
                     )}
                   </div>
-                  <p className="text-sm text-gray-500">@{user.username}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">@{user.username}</p>
                   {user.bio && (
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
                       {user.bio.length > 20 ? `${user.bio.substring(0, 20)}...` : user.bio}
                     </p>
                   )}
@@ -305,7 +301,7 @@ const SuggestedFriends: FC<SuggestedFriendsProps> = ({
                   <button
                     disabled={status.isLoading}
                     onClick={() => handleMessage(user._id!)}
-                    className="px-3 py-1.5 rounded-lg text-sm font-medium transition transform hover:scale-95 bg-blue-500 hover:bg-blue-600 text-white"
+                    className="px-3 py-1.5 rounded-lg text-sm font-medium transition transform hover:scale-95 bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white"
                     aria-label="btn"
                   >
                     <svg
