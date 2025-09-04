@@ -40,11 +40,11 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
         {/* Hamburger Menu for Tablet/Mobile */}
         {!hideSidebar && (
           <button
-            className="lg:hidden p-4 fixed top-0 left-0 z-30"
+            className="lg:hidden p-2 fixed top-3 left-3 z-30 rounded-full bg-white dark:bg-gray-800 shadow-md hover:shadow-lg transition-all duration-200 ease-in-out"
             onClick={toggleSidebar}
-            aria-label="menu"
+            aria-label="Toggle Menu"
           >
-            <IoMenuSharp className="text-xl cursor-pointer text-gray-850 dark:text-gray-200" />
+            <IoMenuSharp className="text-2xl text-gray-800 dark:text-gray-100 hover:text-blue-500 dark:hover:text-blue-400 transition-colors duration-150" />
           </button>
         )}
 

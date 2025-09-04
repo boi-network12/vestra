@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, ReactNode, useState } from "react";
+import { createContext, ReactNode, useCallback, useState } from "react";
 import { toast } from "react-toastify";
 import { useAuth } from "@/hooks/authHooks";
 import { User } from "@/types/user";
@@ -10,6 +10,7 @@ import axios, { AxiosError } from "axios";
 
 interface UserContextType {
   userProfile: User | null;
+  otherUserProfile: User | null;
   isLoading: boolean;
   error: string | null;
   alert: { visible: boolean; message: string; type: ToastType };
@@ -36,6 +37,11 @@ interface UserContextType {
   updateUser: (
     userData: Partial<Pick<User, "username" | "email" | "phoneNumber">>
   ) => Promise<boolean>;
+  getOtherUserDetails: (profileId: string) => Promise<{
+    success: boolean;
+    message: string;
+    data?: User| undefined;
+  }>;
   showAlert: (message: string, type?: ToastType) => void;
   hideAlert: () => void;
 }
@@ -45,6 +51,7 @@ export const UserContext = createContext<UserContextType | undefined>(undefined)
 export const UserProvider = ({ children }: { children: ReactNode }) => {
   const { fetchUser } = useAuth();
   const [userProfile, setUserProfile] = useState<User | null>(null);
+  const [otherUserProfile, setOtherUserProfile] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [alert, setAlert] = useState<{ visible: boolean; message: string; type: ToastType }>({
@@ -242,10 +249,49 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   }
 };
 
+const getOtherUserDetails = useCallback(async (profileId: string): Promise<{
+  success: boolean;
+  message: string;
+  data?: User | undefined;
+}> => {
+  if (!profileId) {
+    setError("Profile ID is required");
+    showAlert("Profile ID is required", "error");
+    return { success: false, message: "Profile ID is required" };
+  }
+  setIsLoading(true);
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("No authentication token found");
+      showAlert("Please log in to fetch user details", "error");
+      return { success: false, message: "No authentication token found" };
+    }
+    const response = await axios.get(`${API_URL}/api/users/user-detail/${profileId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const userData: User = response.data.data;
+    setOtherUserProfile(userData);
+    setError(null);
+    return { success: true, message: "User details fetched successfully", data: userData };
+  } catch (err) {
+    const error = err as AxiosError<{ message?: string }>;
+    console.error("Get other user details error:", error.response?.data || error);
+    const errorMessage = error.response?.data?.message || "Failed to fetch user details";
+    setError(errorMessage);
+    showAlert(errorMessage, "error");
+    return { success: false, message: errorMessage };
+  } finally {
+    setIsLoading(false);
+  }
+}, [setError, setOtherUserProfile]); 
+
+
   return (
     <UserContext.Provider
       value={{
         userProfile,
+        otherUserProfile,
         isLoading,
         error,
         alert,
@@ -254,6 +300,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         checkPhone,
         updateProfile,
         updateUser,
+        getOtherUserDetails,
         showAlert,
         hideAlert,
       }}
