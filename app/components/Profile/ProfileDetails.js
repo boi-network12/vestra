@@ -15,7 +15,7 @@ const blurhash =
   };
 
 
-export default function ProfileDetails({ user, colors, onClickEditBtn, openInAppBrowser, onClickShareBtn }) {
+export default function ProfileDetails({ user, colors, onClickEditBtn, openInAppBrowser, onClickShareBtn, router }) {
 
 
   const fullName = `${user?.profile?.firstName || ''} ${user?.profile?.lastName || ''}`;
@@ -50,7 +50,9 @@ export default function ProfileDetails({ user, colors, onClickEditBtn, openInApp
 
           {/* follow link */}
           <View style={styles.followLink}>
-            <TouchableOpacity>
+            <TouchableOpacity
+               onPress={() => router.push("/user-network")}
+            >
               <Text style={[ { color: colors.subText, fontSize: hp(1.6) }]}>
                  {user?.followers?.length || 0} followers
               </Text>

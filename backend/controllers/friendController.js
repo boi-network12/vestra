@@ -354,7 +354,11 @@ exports.getPendingFollowRequests = async (req, res) => {
       userId: req.user._id,
       type: "follow_request",
     })
-      .populate("relatedId", "-password")
+      .populate({
+        path: "relatedId",
+        select: "-password",
+        model: "User",
+      })
       .skip((page - 1) * limit)
       .limit(parseInt(limit));
 
@@ -831,5 +835,287 @@ exports.updatePrivacySettings = async (req, res) => {
   } catch (err) {
     console.error('Update privacy settings error:', err);
     res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// Fetch followers with mutual status and additional profile details
+exports.getFollowersWithDetails = async (req, res) => {
+  try {
+    const { page = 1, limit = 20 } = req.query;
+    const user = await User.findById(req.user._id).populate({
+      path: 'followers',
+      select: '-password',
+      match: { isDelete: { $ne: true } },
+      options: { sort: { username: 1 } }, // Sort alphabetically by username
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const followers = await Promise.all(
+      user.followers.slice((page - 1) * limit, page * limit).map(async (follower) => {
+        // Check if the follower is also being followed by the current user (mutual)
+        const isMutual = user.following.some((id) => id.equals(follower._id));
+        return {
+          _id: follower._id,
+          username: follower.username,
+          firstName: follower.profile.firstName,
+          lastName: follower.profile.lastName,
+          avatar: follower.profile.avatar,
+          bio: follower.profile.bio, // Additional profile detail
+          isMutual,
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      data: followers,
+      meta: {
+        total: user.followers.length,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(user.followers.length / limit),
+      },
+      message: 'Followers fetched successfully',
+    });
+  } catch (err) {
+    console.error('Get followers with details error:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// Fetch following with mutual status and additional profile details
+exports.getFollowingWithDetails = async (req, res) => {
+  try {
+    const { page = 1, limit = 20 } = req.query;
+    const user = await User.findById(req.user._id).populate({
+      path: 'following',
+      select: '-password',
+      match: { isDelete: { $ne: true } },
+      options: { sort: { username: 1 } }, // Sort alphabetically by username
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const following = await Promise.all(
+      user.following.slice((page - 1) * limit, page * limit).map(async (followed) => {
+        // Check if the followed user also follows the current user (mutual)
+        const followedUser = await User.findById(followed._id);
+        const isMutual = followedUser.followers.some((id) => id.equals(user._id));
+        return {
+          _id: followed._id,
+          username: followed.username,
+          firstName: followed.profile.firstName,
+          lastName: followed.profile.lastName,
+          avatar: followed.profile.avatar,
+          bio: followed.profile.bio, // Additional profile detail
+          isMutual,
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      data: following,
+      meta: {
+        total: user.following.length,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(user.following.length / limit),
+      },
+      message: 'Following fetched successfully',
+    });
+  } catch (err) {
+    console.error('Get following with details error:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// Fetch followers with details for another user
+exports.getOtherUserFollowersWithDetails = async (req, res) => {
+  try {
+    const { userId } = req.params; // Get userId from URL params
+    const { page = 1, limit = 20 } = req.query;
+
+    // Validate userId
+    if (!userId || !mongoose.isValidObjectId(userId)) {
+      return res.status(400).json({ success: false, message: 'Invalid or missing userId' });
+    }
+
+    const currentUser = await User.findById(req.user._id);
+    const targetUser = await User.findById(userId).populate({
+      path: 'followers',
+      select: '-password',
+      match: { isDelete: { $ne: true } },
+      options: { sort: { username: 1 } }, // Sort alphabetically by username
+    });
+
+    if (!targetUser || targetUser.isDelete) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Check privacy settings
+    const { profileVisibility } = targetUser.privacySettings;
+    const isFollowingTarget = targetUser.followers.some((id) => id.equals(currentUser._id));
+    const isBlocked = currentUser.blockedUsers.includes(targetUser._id) || targetUser.blockedUsers.includes(currentUser._id);
+
+    if (isBlocked) {
+      return res.status(403).json({ success: false, message: 'Cannot view followers due to block status' });
+    }
+
+    if (profileVisibility === 'private' && !isFollowingTarget && !currentUser._id.equals(targetUser._id)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Cannot view followers of a private account unless you are following',
+      });
+    }
+
+    if (profileVisibility === 'followers' && !isFollowingTarget && !currentUser._id.equals(targetUser._id)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Cannot view followers unless you are following this user',
+      });
+    }
+
+    const followers = await Promise.all(
+      targetUser.followers.slice((page - 1) * limit, page * limit).map(async (follower) => {
+        // Check if the follower is also followed by the current user (mutual)
+        const isMutual = currentUser.following.some((id) => id.equals(follower._id));
+        return {
+          _id: follower._id,
+          username: follower.username,
+          firstName: follower.profile.firstName,
+          lastName: follower.profile.lastName,
+          avatar: follower.profile.avatar,
+          bio: follower.profile.bio,
+          isMutual,
+        };
+      })
+    );
+
+    // Log the action in UserHistory
+    await UserHistory.create({
+      userId: currentUser._id,
+      field: 'viewed_followers',
+      oldValue: '',
+      newValue: targetUser._id.toString(),
+      ipAddress: req.ip,
+      device: req.headers['user-agent'] || 'unknown',
+    });
+
+    res.json({
+      success: true,
+      data: followers,
+      meta: {
+        total: targetUser.followers.length,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(targetUser.followers.length / limit),
+      },
+      message: `Followers of ${targetUser.username} fetched successfully`,
+    });
+  } catch (err) {
+    console.error('Get other user followers with details error:', {
+      message: err.message || 'Unknown error',
+      stack: err.stack,
+    });
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// Fetch following with details for another user
+exports.getOtherUserFollowingWithDetails = async (req, res) => {
+  try {
+    const { userId } = req.params; // Get userId from URL params
+    const { page = 1, limit = 20 } = req.query;
+
+    // Validate userId
+    if (!userId || !mongoose.isValidObjectId(userId)) {
+      return res.status(400).json({ success: false, message: 'Invalid or missing userId' });
+    }
+
+    const currentUser = await User.findById(req.user._id);
+    const targetUser = await User.findById(userId).populate({
+      path: 'following',
+      select: '-password',
+      match: { isDelete: { $ne: true } },
+      options: { sort: { username: 1 } }, // Sort alphabetically by username
+    });
+
+    if (!targetUser || targetUser.isDelete) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Check privacy settings
+    const { profileVisibility } = targetUser.privacySettings;
+    const isFollowingTarget = targetUser.followers.some((id) => id.equals(currentUser._id));
+    const isBlocked = currentUser.blockedUsers.includes(targetUser._id) || targetUser.blockedUsers.includes(currentUser._id);
+
+    if (isBlocked) {
+      return res.status(403).json({ success: false, message: 'Cannot view following due to block status' });
+    }
+
+    if (profileVisibility === 'private' && !isFollowingTarget && !currentUser._id.equals(targetUser._id)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Cannot view following of a private account unless you are following',
+      });
+    }
+
+    if (profileVisibility === 'followers' && !isFollowingTarget && !currentUser._id.equals(targetUser._id)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Cannot view following unless you are following this user',
+      });
+    }
+
+    const following = await Promise.all(
+      targetUser.following.slice((page - 1) * limit, page * limit).map(async (followed) => {
+        // Check if the followed user also follows the current user (mutual)
+        const followedUser = await User.findById(followed._id);
+        const isMutual = followedUser.followers.some((id) => id.equals(currentUser._id));
+        return {
+          _id: followed._id,
+          username: followed.username,
+          firstName: followed.profile.firstName,
+          lastName: followed.profile.lastName,
+          avatar: followed.profile.avatar,
+          bio: followed.profile.bio,
+          isMutual,
+        };
+      })
+    );
+
+    // Log the action in UserHistory
+    await UserHistory.create({
+      userId: currentUser._id,
+      field: 'viewed_following',
+      oldValue: '',
+      newValue: targetUser._id.toString(),
+      ipAddress: req.ip,
+      device: req.headers['user-agent'] || 'unknown',
+    });
+
+    res.json({
+      success: true,
+      data: following,
+      meta: {
+        total: targetUser.following.length,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(targetUser.following.length / limit),
+      },
+      message: `Following of ${targetUser.username} fetched successfully`,
+    });
+  } catch (err) {
+    console.error('Get other user following with details error:', {
+      message: err.message || 'Unknown error',
+      stack: err.stack,
+    });
+    return res.status(500).json({ success: false, message: 'Server error' });
   }
 };

@@ -1,15 +1,22 @@
+"use client"
 import { User } from '@/types/user'
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import React, { FC } from 'react'
 
 interface OtherUserProfileCardProps {
     user: User | null;
     handleShareBtnClick: () => void;
+    userId?: string
 }
 
-const OtherUserProfileCard: FC<OtherUserProfileCardProps> = ({ handleShareBtnClick, user }) => {
+const OtherUserProfileCard: FC<OtherUserProfileCardProps> = ({ handleShareBtnClick, user, userId }) => {
+  const router = useRouter()
+
   if (!user) return null;
+
+  
 
   const fullName = `${user?.profile?.firstName || ''} ${user?.profile?.lastName || ''}`;
   const dynamicFontSize = fullName.length > 20 ? 'text-lg' : 'text-xl';
@@ -39,7 +46,9 @@ const OtherUserProfileCard: FC<OtherUserProfileCardProps> = ({ handleShareBtnCli
 
       {/* Followers & Link */}
       <div className="flex flex-wrap items-center gap-2 mt-4 text-sm text-gray-500 dark:text-gray-400">
-        <button className="hover:underline">
+        <button className="hover:underline"
+           onClick={() => router.push(`/users/${userId}`)}
+        >
           {user?.followers?.length || 0} followers
         </button>
         <span className="text-gray-300 dark:text-gray-600">&bull;</span>

@@ -161,6 +161,7 @@ export default function Profile() {
                browserUrl={browserUrl}
                isBrowserVisible={isBrowserVisible}
                openInAppBrowser={openInAppBrowser}
+               router={router}
             />
 
             {/* finish up */}

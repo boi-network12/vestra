@@ -2,12 +2,28 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, StatusBar as RNStatusBar, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { heightPercentageToDP as hp, widthPercentageToDP as wp } from 'react-native-responsive-screen';
+import { StatusBar } from "expo-status-bar"
+import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, StatusBar as RNStatusBar, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { heightPercentageToDP as hp } from 'react-native-responsive-screen';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../hooks/useAuth';
 import { getThemeColors } from '../../utils/theme';
 import { useAlert } from '../../context/AlertContext';
+import { withOpacity } from '../../utils/colorUtils';
+import LogoImage from '../../assets/images/loadIcon.png';
+
+const RenderBg = ({ children }) => {
+  const { isDark } = useTheme();
+  const colors = getThemeColors(isDark);
+
+  return (
+    <View style={[styles.BgContainer, { backgroundColor: withOpacity(colors.background, 90) }]}>
+      <View style={[styles.bgSubWrapper, { backgroundColor: colors.subPrimary }]}>
+        {children}
+      </View>
+    </View>
+  );
+};
 
 export default function Login() {
   const { login, error, isLoading } = useAuth();
@@ -43,7 +59,6 @@ export default function Login() {
       showAlert('Login successful!', 'success');
       router.replace('home');
     } else if (error && error.toLowerCase().includes('verify your account')) {
-      // Store email for verification page
       await AsyncStorage.setItem('pendingVerificationEmail', form.email);
       showAlert('Please verify your email. A code has been sent.', 'info');
       setTimeout(() => {
@@ -57,27 +72,13 @@ export default function Login() {
     }
   };
 
-  return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardView}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? hp(10) : hp(2)}
-      >
-        <View style={styles.headerAction}>
-          <Ionicons name='chevron-back-outline' size={hp(3)} color={colors.icon} onPress={() => router.back()} />
-        </View>
-
-        <Text style={[styles.HeaderText, { color: colors.text }]}>
-          Login <Ionicons name='sparkles-outline' size={hp(1.8)} color={colors.primary} />
-        </Text>
-        <Text style={[styles.subText, { color: colors.subText }]}>welcome back! please enter your details.</Text>
-
+  const renderForm = () => {
+    return (
+      <View style={[styles.FormContainer, { backgroundColor: colors.background, borderColor: withOpacity(colors.border, 60) }]}>
         {/* Email */}
         <View style={styles.inputContainer}>
-          <Text style={[styles.label, { color: colors.text }]}>Email</Text>
+          <Text style={[styles.label, { color: colors.subText }]}>Email</Text>
           <View style={[styles.boxInput, errors.email && styles.errorInput, { borderColor: colors.border, backgroundColor: colors.inputBg }]}>
-            <Ionicons name='mail-open-outline' size={hp(2.5)} color={colors.icon} />
             <TextInput
               placeholder='Enter your email'
               placeholderTextColor={colors.placeholder}
@@ -95,9 +96,8 @@ export default function Login() {
 
         {/* Password */}
         <View style={styles.inputContainer}>
-          <Text style={[styles.label, { color: colors.text }]}>Password</Text>
+          <Text style={[styles.label, { color: colors.subText }]}>Password</Text>
           <View style={[styles.boxInput, errors.password && styles.errorInput, { borderColor: colors.border, backgroundColor: colors.inputBg }]}>
-            <Ionicons name='lock-closed-outline' size={hp(2.5)} color={colors.icon} />
             <TextInput
               placeholder='******'
               placeholderTextColor={colors.placeholder}
@@ -132,54 +132,98 @@ export default function Login() {
             />
             <Text style={[styles.checkboxText, { color: colors.subText }]}>Remember for 30 days</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => console.log('Forgot password')}>
+          <TouchableOpacity onPress={() => router.push('forgot-password')}>
             <Text style={[styles.linkText, { color: colors.primary }]}>Forgot password</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Submit */}
-        <TouchableOpacity style={[styles.btn, { backgroundColor: colors.primary }, isLoading && styles.btnDisabled]} onPress={handleSubmit}>
-          <Text style={[styles.btnText, { color: '#fff' }]}>{isLoading ? 'Logging in...' : 'Login'}</Text>
+        {/* Submit Button */}
+        <TouchableOpacity
+          style={[styles.btn, { backgroundColor: colors.subPrimary }]}
+          onPress={handleSubmit}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator size={hp(3)} color="#fff" />
+          ) : (
+            <Text style={[styles.btnText, { color: '#fff' }]}>Login</Text>
+          )}
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.footerLink} onPress={() => router.push('register')}>
-          <Text style={[styles.subText, { color: colors.subText }]}>
-            Don&apos;t have an account? <Text style={[styles.linkText, { color: colors.primary }]}>Sign up</Text>
+        {/* Sign Up Link */}
+        <TouchableOpacity style={styles.inputContainer} onPress={() => router.push('register')}>
+          <Text style={[styles.label, { color: colors.subText }]}>
+            Don&apos;t have an account? Sign up
           </Text>
         </TouchableOpacity>
-      </KeyboardAvoidingView> 
+      </View>
+    );
+  };
 
-    </SafeAreaView>
+  return (
+    <RenderBg>
+      <SafeAreaView style={[styles.container]}>
+        <StatusBar style='auto' />
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.keyboardView}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? hp(10) : hp(2)}
+        >
+          <View style={[styles.Topper]}>
+            <Image
+              source={LogoImage}
+              style={{ width: hp(8), height: hp(8) }}
+              resizeMode='center'
+            />
+            <Text style={[styles.TopperText, { color: '#fff' }]}>Login</Text>
+          </View>
+          {renderForm()}
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </RenderBg>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight : 0,
   },
   keyboardView: {
     flex: 1,
     paddingHorizontal: hp(2),
     marginTop: hp(2),
   },
-  headerAction: {
-    paddingVertical: hp(1),
+  BgContainer: {
+    flex: 1,
   },
-  HeaderText: {
-    fontSize: hp(2),
-    fontWeight: '600',
+  bgSubWrapper: {
+    width: '100%',
+    height: hp('50%'),
+    paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight : 0,
   },
-  subText: {
-    marginTop: hp(0.5),
-    marginBottom: hp(2),
+  Topper: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: hp(8),
+  },
+  TopperText: {
+    fontSize: hp(3),
+    fontWeight: '500',
+    marginBottom: hp(1.5),
+  },
+  FormContainer: {
+    width: '100%',
+    padding: hp(2),
+    borderWidth: 0.7,
+    borderRadius: hp(0.7),
   },
   inputContainer: {
-    marginTop: hp(2),
+    width: '100%',
   },
   label: {
     fontSize: hp(1.6),
-    fontWeight: '600',
+    marginTop: hp(2),
   },
   boxInput: {
     marginTop: hp(1.5),
@@ -202,12 +246,11 @@ const styles = StyleSheet.create({
     marginTop: hp(0.5),
   },
   btn: {
-    width: wp(93),
-    height: hp(5.8),
-    borderRadius: hp(1),
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: hp(2),
+    marginTop: hp(2),
+    height: hp(5),
+    borderRadius: hp(1),
   },
   btnText: {
     fontSize: hp(1.9),
@@ -229,13 +272,7 @@ const styles = StyleSheet.create({
     fontSize: hp(1.6),
   },
   linkText: {
+    fontSize: hp(1.6),
     fontWeight: '500',
-  },
-  footerLink: {
-    alignItems: 'center',
-    marginTop: hp(2),
-  },
-  btnDisabled: {
-    opacity: 0.6,
   },
 });

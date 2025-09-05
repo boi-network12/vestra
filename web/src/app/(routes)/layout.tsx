@@ -17,9 +17,9 @@ const trends: Trend[] = [
   { topic: "Next.js", posts: "500K" },
 ];
 
-const noSidebarRoutes = ["/settings"];
-const noTabNeeded = ["/settings", "/users"];
-const noRightSidebar = ["/profile", "/users"];
+const noSidebarRoutes = ["/settings", "/profile/user-network"];
+const noTabNeeded = ["/settings", "/users", "/profile/user-network"];
+const noRightSidebar = ["/profile", "/users", "/profile/user-network"];
 
 export default function ProtectedLayout({ children }: { children: ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);

@@ -5,6 +5,7 @@ import ProfileDetailsCard from '@/components/Profile/ProfileDetailsCard';
 import ProfileReminder from '@/components/Profile/ProfileReminder';
 import { useAuth } from '@/hooks/authHooks';
 import { useUser } from '@/hooks/userHooks';
+import { useRouter } from 'next/navigation';
 import React, { useRef, useState } from 'react';
 
 const Profile = () => {
@@ -13,6 +14,7 @@ const Profile = () => {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const shareProfileRef = useRef<ShareProfileRef>(null);
+  const router = useRouter()
 
   const toggleViewMode = () => {
     setViewMode((prevMode) => (prevMode === 'list' ? 'grid' : 'list'));
@@ -35,6 +37,7 @@ const Profile = () => {
             user={user}
             handleEditBtnClick={() => setIsEditModalOpen(true)}
             handleShareBtnClick={() => shareProfileRef.current?.open()}
+            toUserNetwork={() => router.push(`/profile/user-network`)}
           />
         </aside>
 

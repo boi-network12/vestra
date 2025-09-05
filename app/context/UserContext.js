@@ -1,7 +1,7 @@
 // context/UserContext.js
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-import { createContext, useContext, useState } from 'react';
+import { createContext, useCallback, useContext, useState } from 'react';
 import { API_URL } from '../config/apiConfig';
 import { AuthContext } from './AuthContext';
 
@@ -150,7 +150,7 @@ export const UserProvider = ({ children }) => {
     }
   };
 
-  const getOtherUserDetails = async (profileId) => {
+  const getOtherUserDetails = useCallback(async (profileId) => {
     if (!profileId) {
       setError('Profile ID is required');
       showAlert('Profile ID is required', 'error');
@@ -162,7 +162,7 @@ export const UserProvider = ({ children }) => {
       const response = await axios.get(`${API_URL}/api/users/user-detail/${profileId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setOtherUserProfile(response.data.data); // Store fetched user profile
+      setOtherUserProfile(response.data.data);
       setError(null);
       return { success: true, data: response.data.data };
     } catch (err) {
@@ -174,7 +174,7 @@ export const UserProvider = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   return (
     <UserContext.Provider

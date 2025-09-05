@@ -14,7 +14,7 @@ const blurhash =
     return `rgba(${r}, ${g}, ${b}, ${opacity})`;
   };
 
-export default function OtherProfileDetail({ user, colors, openInAppBrowser }) {
+export default function OtherProfileDetail({ user, colors, openInAppBrowser, router, userId }) {
 
     const fullName = `${user?.profile?.firstName || ''} ${user?.profile?.lastName || ''}`;
     const dynamicFontSize = fullName.length > 20 ? hp(2) : hp(2.5);
@@ -48,7 +48,9 @@ export default function OtherProfileDetail({ user, colors, openInAppBrowser }) {
 
           {/* follow link */}
           <View style={styles.followLink}>
-            <TouchableOpacity>
+            <TouchableOpacity
+               onPress={() => router.push(`/users/${userId}`)}
+            >
               <Text style={[ { color: colors.subText, fontSize: hp(1.6) }]}>
                  {user?.followers?.length || 0} followers
               </Text>

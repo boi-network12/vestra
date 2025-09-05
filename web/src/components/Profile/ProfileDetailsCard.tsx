@@ -8,9 +8,10 @@ interface ProfileDetailsCardProps {
   user: User | null;
   handleEditBtnClick: () => void;
   handleShareBtnClick: () => void;
+  toUserNetwork: () => void;
 }
 
-const ProfileDetailsCard: FC<ProfileDetailsCardProps> = ({ user, handleEditBtnClick, handleShareBtnClick }) => {
+const ProfileDetailsCard: FC<ProfileDetailsCardProps> = ({ user, handleEditBtnClick, handleShareBtnClick, toUserNetwork }) => {
   if (!user) return null;
 
   const fullName = `${user?.profile?.firstName || ''} ${user?.profile?.lastName || ''}`;
@@ -41,7 +42,9 @@ const ProfileDetailsCard: FC<ProfileDetailsCardProps> = ({ user, handleEditBtnCl
 
       {/* Followers & Link */}
       <div className="flex flex-wrap items-center gap-2 mt-4 text-sm text-gray-500 dark:text-gray-400">
-        <button className="hover:underline">
+        <button className="hover:underline"
+           onClick={toUserNetwork}
+        >
           {user?.followers?.length || 0} followers
         </button>
         <span className="text-gray-300 dark:text-gray-600">&bull;</span>

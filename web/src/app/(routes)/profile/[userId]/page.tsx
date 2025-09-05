@@ -58,6 +58,7 @@ const UserProfile = () => {
         <aside className="bg-white/30 dark:bg-gray-800/30 backdrop-blur-md rounded-2xl shadow p-6 h-fit">
           <OtherUserProfileCard
             user={otherUserProfile}
+            userId={userId}
             handleShareBtnClick={() => shareProfileRef.current?.open()}
           />
         </aside>

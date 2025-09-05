@@ -125,6 +125,8 @@ export default function UserProfile() {
                browserUrl={browserUrl}
                isBrowserVisible={isBrowserVisible}
                openInAppBrowser={openInAppBrowser}
+               router={router}
+               userId={userId}
             />
             
             <View style={styles.viewToggleContainer}>

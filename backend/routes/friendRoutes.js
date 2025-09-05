@@ -14,6 +14,10 @@ const {
   rejectFollowRequest,
   getPendingFollowRequests,
   cancelFollowRequest,
+  getFollowersWithDetails,
+  getFollowingWithDetails,
+  getOtherUserFollowingWithDetails,
+  getOtherUserFollowersWithDetails,
 } = require('../controllers/friendController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -31,7 +35,10 @@ router.post('/unblock', unblockUser);
 router.get('/blocked', getBlockedUsers);
 router.patch('/privacy-settings', updatePrivacySettings);
 router.get('/pending-follow-requests', getPendingFollowRequests);
-// In your router file
 router.post("/cancel-follow-request", cancelFollowRequest);
+router.get('/followers/details', getFollowersWithDetails);
+router.get('/following/details', getFollowingWithDetails);
+router.get('/other-followers/:userId', getOtherUserFollowersWithDetails); 
+router.get('/other-following/:userId', getOtherUserFollowingWithDetails); 
 
 module.exports = router;
