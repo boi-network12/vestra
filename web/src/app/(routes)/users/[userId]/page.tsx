@@ -4,9 +4,9 @@ import { useFriends } from '@/hooks/FriendHooks';
 import { useUser } from '@/hooks/userHooks';
 import { useParams } from 'next/navigation';
 import React, { useEffect, useState } from 'react'
-import Followers from '../../profile/user-network/_components/Followers';
-import Following from '../../profile/user-network/_components/Following';
 import { cn } from '@/lib/utils';
+import OtherFollowers from './_components/OthersFollowers';
+import OtherUserFollowing from './_components/OtherUserFollowing';
 
 const ProfileScreen = () => {
     const params = useParams();
@@ -49,27 +49,23 @@ const ProfileScreen = () => {
         const renderTabContent = () => {
             switch (selectedTab) {
                 case 'Followers':
-                return <Followers
+                return <OtherFollowers
                             followers={followers}
                             followUser={followUser}
                             unfollowUser={unfollowUser}
                             isLoading={isLoading}
                             error={error}
-                            getFollowersWithDetails={(page, limit) =>
-                              getOtherUserFollowersWithDetails(userId, page ? Number(page) : undefined, limit ? Number(limit) : undefined)
-                            }
+                            getFollowersWithDetails={getOtherUserFollowersWithDetails}
                             following={following}
                             currentUser={currentUser}
                         />;
                 case 'Following':
-                return <Following
+                return <OtherUserFollowing
                             following={following}
                             unfollowUser={unfollowUser}
                             isLoading={isLoading}
                             error={error}
-                            getFollowingWithDetails={(page, limit) =>
-                               getOtherUserFollowingWithDetails(userId, page ? Number(page) : undefined, limit ? Number(limit) : undefined)
-                            }
+                            getFollowingWithDetails={getOtherUserFollowingWithDetails}
                             currentUser={currentUser}
                         />;
                 default:
