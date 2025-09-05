@@ -2,7 +2,7 @@
 import SuggestedFriends from '@/components/users/SuggestedFriends';
 import { useFriends } from '@/hooks/FriendHooks';
 import { cn } from '@/lib/utils';
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import Followers from './_components/Followers';
 import Following from './_components/Following';
 
@@ -27,13 +27,37 @@ const UserNetwork = () => {
   const [selectedTab, setSelectedTab] = useState<"Followers" | "Following" | "Users">("Followers");
   const [searchQuery] = useState("");
 
-   useEffect(() => {
+  // Wrapper function for getFollowersWithDetails
+  const adaptedGetFollowersWithDetails = useCallback(
+    (userId?: string | number, page?: number, limit?: number) => {
+      return getFollowersWithDetails(page, limit);
+    },
+    [getFollowersWithDetails]
+  );
+
+  // Wrapper function for getFollowingWithDetails
+  const adaptedGetFollowingWithDetails = useCallback(
+    (userId?: string | number, page?: number, limit?: number) => {
+      return getFollowingWithDetails(page, limit);
+    },
+    [getFollowingWithDetails]
+  );
+
+  useEffect(() => {
     setFollowers([]);
     setFollowing([]);
-    getFollowersWithDetails();
-    getFollowingWithDetails();
-    getSuggestedUsers()
-  }, [getFollowersWithDetails, getFollowingWithDetails, setFollowers, setFollowing, getSuggestedUsers]);
+    adaptedGetFollowersWithDetails();
+    adaptedGetFollowingWithDetails(); // Use the adapted function
+    getSuggestedUsers();
+  }, [
+    adaptedGetFollowersWithDetails,
+    adaptedGetFollowingWithDetails,
+    setFollowers,
+    setFollowing,
+    getSuggestedUsers,
+  ]);
+
+
 
   // Handle tab change
   const handleTabPress = (tab: typeof selectedTab) => {
@@ -41,7 +65,7 @@ const UserNetwork = () => {
     if (tab === "Users") {
       getSuggestedUsers();
     } else if (tab === "Followers") {
-      getFollowersWithDetails();
+      adaptedGetFollowersWithDetails();
     } else {
       getFollowingWithDetails();
     }
@@ -57,7 +81,7 @@ const UserNetwork = () => {
             unfollowUser={unfollowUser}
             isLoading={isLoading}
             error={error}
-            getFollowersWithDetails={getFollowersWithDetails}
+            getFollowersWithDetails={adaptedGetFollowersWithDetails}
             following={following}
           />
         );
@@ -68,7 +92,7 @@ const UserNetwork = () => {
             unfollowUser={unfollowUser}
             isLoading={isLoading}
             error={error}
-            getFollowingWithDetails={getFollowingWithDetails}
+            getFollowingWithDetails={adaptedGetFollowingWithDetails}
           />
         );
       case "Users":
