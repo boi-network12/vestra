@@ -32,7 +32,7 @@ const Profile = () => {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 grid gap-8 lg:grid-cols-[350px_1fr]">
         {/* Profile Sidebar */}
-        <aside className="bg-white/30 dark:bg-gray-800/30 backdrop-blur-md rounded-2xl shadow p-6 h-fit">
+        <aside className="bg-white/30 dark:bg-gray-800/30 backdrop-blur-md rounded-2xl shadow  h-fit">
           <ProfileDetailsCard
             user={user}
             handleEditBtnClick={() => setIsEditModalOpen(true)}

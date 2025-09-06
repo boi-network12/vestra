@@ -7,11 +7,20 @@ import ShareProfile, { ShareProfileRef } from "@/components/Profile/Modal/ShareP
 import { useUser } from "@/hooks/userHooks";
 import OtherUserProfileCard from "@/components/Profile/OtherUserProfileCard";
 import { LockClosedIcon } from "@heroicons/react/24/solid";
+import { useFriends } from "@/hooks/FriendHooks";
 
 const UserProfile = () => {
   const params = useParams();
   const userId = params.userId as string;
   const { user: currentUser } = useAuth();
+  const {
+    followUser,
+    unfollowUser,
+    cancelFollowRequest,
+    following,
+    pendingFollowRequests,
+    getPendingFollowRequests
+  } = useFriends();
   const { getOtherUserDetails, otherUserProfile, isLoading } = useUser();
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const shareProfileRef = useRef<ShareProfileRef>(null);
@@ -55,11 +64,19 @@ const UserProfile = () => {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 grid gap-8 lg:grid-cols-[350px_1fr]">
         {/* Profile Sidebar */}
-        <aside className="bg-white/30 dark:bg-gray-800/30 backdrop-blur-md rounded-2xl shadow p-6 h-fit">
+        <aside className="bg-white/30 dark:bg-gray-800/30 backdrop-blur-md rounded-2xl shadow h-fit">
           <OtherUserProfileCard
             user={otherUserProfile}
             userId={userId}
+            currentUser={currentUser}
             handleShareBtnClick={() => shareProfileRef.current?.open()}
+            followUser={followUser}
+            unfollowUser={unfollowUser}
+            cancelFollowRequest={cancelFollowRequest}
+            following={following}
+            pendingFollowRequests={pendingFollowRequests}
+            getPendingFollowRequests={getPendingFollowRequests}
+            getOtherUserDetails={getOtherUserDetails}
           />
         </aside>
 
