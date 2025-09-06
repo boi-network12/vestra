@@ -211,7 +211,7 @@ export const FriendProvider = ({ children }: { children: ReactNode }) => {
         } else if (response.data.followStatus === "REQUESTED") {
           setPendingFollowRequests((prev) => [...prev, { user: { _id: userId } as User }]);
         }
-        await Promise.all([getSuggestedUsers(), getFollowing(), getPendingFollowRequests()]);
+        await Promise.all([ getFollowing(), getPendingFollowRequests()]);
         showAlert(response.data.message, "success");
         return {
           success: true,
@@ -414,7 +414,7 @@ export const FriendProvider = ({ children }: { children: ReactNode }) => {
 
       if (response.data.success) {
         showAlert(response.data.message, "success");
-        await getSuggestedUsers();
+        // await getSuggestedUsers();
         return { success: true, message: response.data.message };
       } else {
         throw new Error(response.data.message || "Failed to cancel follow request");
@@ -430,7 +430,7 @@ export const FriendProvider = ({ children }: { children: ReactNode }) => {
       }
       setError(errorMsg);
       showAlert(errorMsg, "error");
-      await Promise.all([getPendingFollowRequests(), getSuggestedUsers()]);
+      await getPendingFollowRequests();
       return { success: false, message: errorMsg };
     } finally {
       setIsLoading(false);

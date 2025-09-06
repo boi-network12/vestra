@@ -1,8 +1,9 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
-import React from 'react'
+import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native'
+import React, { useCallback, useMemo, useState } from 'react'
 import { heightPercentageToDP as hp, widthPercentageToDP as wp } from "react-native-responsive-screen";
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import { useAlert } from '../../context/AlertContext';
 
 const blurhash =
   '|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[';
@@ -14,10 +15,128 @@ const blurhash =
     return `rgba(${r}, ${g}, ${b}, ${opacity})`;
   };
 
-export default function OtherProfileDetail({ user, colors, openInAppBrowser, router, userId }) {
+export default function OtherProfileDetail({ 
+   user, 
+   colors, 
+   openInAppBrowser, 
+   router, 
+   following,
+   unfollowUser, cancelFollowRequest, pendingFollowRequests, followUser,
+   userId
+   }) {
+  const { showAlert } = useAlert();
+  const [isModalVisible, setIsModalVisible] = useState(true);
+  const [buttonAnimation] = useState(new Animated.Value(1))
 
     const fullName = `${user?.profile?.firstName || ''} ${user?.profile?.lastName || ''}`;
     const dynamicFontSize = fullName.length > 20 ? hp(2) : hp(2.5);
+
+    const isFollowing = useMemo(
+    () => Array.isArray(following) && following.some((u) => u._id === userId),
+    [following, userId]
+  );
+  const isRequested = useMemo(
+    () =>
+        Array.isArray(pendingFollowRequests) &&
+        pendingFollowRequests.some((req) => req.user._id === userId),
+      [pendingFollowRequests, userId]
+    );
+    const isMutual = useMemo(
+      () => user?.isMutual || (isFollowing && user?.followers?.some((f) => f._id === userId)),
+      [isFollowing, user, userId]
+    );
+    const isPrivate = user?.privacySettings?.profileVisibility === "private";
+
+    // Handle profile click
+    const handleProfileClick = useCallback(() => {
+      const privacy = user?.privacySettings?.profileVisibility || "public";
+      if (privacy === "public" || (isFollowing && (privacy === "private" || privacy === "followers"))) {
+        router.push(`/users/${userId}`);
+      } else {
+        showAlert("This profile is private. Follow the user to view their profile.", "info");
+      }
+    }, [user, userId, isFollowing, router, showAlert]);
+
+    // Animate button
+  const animateButton = useCallback(() => {
+    Animated.sequence([
+      Animated.timing(buttonAnimation, {
+        toValue: 0.9,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(buttonAnimation, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [buttonAnimation]);
+
+  // Handle follow action
+  const handleFollow = useCallback(async () => {
+    animateButton();
+    await followUser(userId);
+  }, [followUser, userId, animateButton]);
+
+  // Handle unfollow action
+  const handleUnfollow = useCallback(async () => {
+    animateButton();
+    await unfollowUser(userId);
+  }, [unfollowUser, userId, animateButton]);
+
+  // Handle cancel follow request
+  const handleCancelRequest = useCallback(async () => {
+    animateButton();
+    await cancelFollowRequest(userId);
+  }, [cancelFollowRequest, userId, animateButton]);
+
+  // Button configuration
+  const buttonConfig = useMemo(() => {
+    if (isMutual) {
+      return {
+        icon: "people",
+        text: "Friends",
+        color: colors.primary,
+        textColor: colors.text,
+        action: () => setIsModalVisible(true),
+      };
+    }
+    if (isPrivate && !isFollowing && !isRequested) {
+      return {
+        icon: "person-add",
+        text: "Follow",
+        color: colors.primary,
+        textColor: colors.text,
+        action: handleFollow,
+      };
+    }
+    if (isRequested) {
+      return {
+        icon: "time-outline",
+        text: "Requested",
+        color: colors.skeleton,
+        textColor: colors.text,
+        action: handleCancelRequest,
+      };
+    }
+    if (isFollowing) {
+      return {
+        icon: "person-remove",
+        text: "Unfollow",
+        color: colors.skeleton,
+        textColor: colors.text,
+        action: handleUnfollow,
+      };
+    }
+    return {
+      icon: "person-add",
+      text: "Follow",
+      color: colors.primary,
+      textColor: colors.text,
+      action: handleFollow,
+    };
+  }, [isMutual, isPrivate, isFollowing, isRequested, colors, handleFollow, handleUnfollow, handleCancelRequest]);
 
 
   return (
@@ -49,7 +168,7 @@ export default function OtherProfileDetail({ user, colors, openInAppBrowser, rou
           {/* follow link */}
           <View style={styles.followLink}>
             <TouchableOpacity
-               onPress={() => router.push(`/users/${userId}`)}
+               onPress={handleProfileClick}
             >
               <Text style={[ { color: colors.subText, fontSize: hp(1.6) }]}>
                  {user?.followers?.length || 0} followers
@@ -78,20 +197,36 @@ export default function OtherProfileDetail({ user, colors, openInAppBrowser, rou
           </View>
 
           <View style={styles.btnContainer}>
-            <TouchableOpacity
-              style={[styles.btn, { backgroundColor: colors.background, borderColor: withOpacity(colors.subText, 0.4) }]}
-            >
-              <Text style={[styles.profileBtnText, { color: colors.text }]}>
-                Edit profile
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.btn, { backgroundColor: colors.background, borderColor: withOpacity(colors.subText, 0.4) }]}
-            >
-              <Text style={[styles.profileBtnText, { color: colors.text }]}>
-                Share profile
-              </Text>
-            </TouchableOpacity>
+            <Animated.View style={{ transform: [{ scale: buttonAnimation }] }}>
+              <TouchableOpacity
+                style={[
+                  styles.btn,
+                  isPrivate && !isFollowing && !isRequested
+                    ? { width: wp(90), backgroundColor: buttonConfig.color }
+                    : { width: wp(44), backgroundColor: buttonConfig.color },
+                ]}
+                onPress={buttonConfig.action}
+              >
+                <Ionicons
+                  name={buttonConfig.icon}
+                  size={hp(2)}
+                  color={buttonConfig.textColor}
+                  style={styles.btnIcon}
+                />
+                <Text style={[styles.profileBtnText, { color: buttonConfig.textColor }]}>
+                  {buttonConfig.text}
+                </Text>
+              </TouchableOpacity>
+            </Animated.View>
+            {!isPrivate && (
+              <TouchableOpacity
+                style={[styles.btn, { width: wp(44), backgroundColor: colors.primary }]}
+                onPress={() => router.push(`/messages/${userId}`)}
+              >
+                <Ionicons name="chatbubbles-outline" size={hp(2)} color={colors.text} />
+                <Text style={[styles.profileBtnText, { color: colors.text }]}>Message</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </View>
@@ -141,10 +276,12 @@ const styles = StyleSheet.create({
   },
   btn: {
     borderWidth: 1,
-    borderRadius: wp(4),
+    borderRadius: wp(2),
+    alignItems: 'center',
     width: wp(44),
     height: hp(5),
-    alignItems: "center",
+    flexDirection:"row",
     justifyContent: "center",
+    gap: hp(1.5)
   }
 });

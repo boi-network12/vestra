@@ -60,6 +60,7 @@ const OtherUserProfileCard: FC<OtherUserProfileCardProps> = ({
 }) => {
   const [isButtonLoading, setIsButtonLoading] = useState(false);
   const [hasFetchedPendingRequests, setHasFetchedPendingRequests] = useState(false);
+  const [localButtonState, setLocalButtonState] = useState<ButtonState | null>(null);
   const router = useRouter();
 
 
@@ -82,7 +83,8 @@ const OtherUserProfileCard: FC<OtherUserProfileCardProps> = ({
 
 
   const buttonState: ButtonState =
-    followStatus === "REQUESTED" || isPending
+    localButtonState ||
+    (followStatus === "REQUESTED" || isPending
       ? "REQUESTED"
       : isMutual
       ? "MUTUAL"
@@ -90,7 +92,7 @@ const OtherUserProfileCard: FC<OtherUserProfileCardProps> = ({
       ? "FOLLOWING"
       : followStatus === "FOLLOW_BACK"
       ? "FOLLOW_BACK"
-      : "FOLLOW";
+      : "FOLLOW");
 
   // Handle profile navigation with privacy rules
   const handleProfileClick = () => {
@@ -110,10 +112,11 @@ const OtherUserProfileCard: FC<OtherUserProfileCardProps> = ({
     const result = await followUser(userId);
     setIsButtonLoading(false);
     if (result.success) {
+      setLocalButtonState("REQUESTED"); // instantly update UI
       await getPendingFollowRequests();
+      setHasFetchedPendingRequests(true);
     } else {
       console.error("Follow error:", result.message);
-      // toast.error(result.message);
     }
   };
 
@@ -122,10 +125,9 @@ const OtherUserProfileCard: FC<OtherUserProfileCardProps> = ({
     const result = await unfollowUser(userId);
     setIsButtonLoading(false);
     if (result.success) {
-      // toast.success(result.message);
+      setLocalButtonState("FOLLOW");
     } else {
       console.error("Unfollow error:", result.message);
-      // toast.error(result.message);
     }
   };
 
@@ -134,6 +136,7 @@ const OtherUserProfileCard: FC<OtherUserProfileCardProps> = ({
     const result = await cancelFollowRequest(userId);
     setIsButtonLoading(false);
     if (result.success) {
+      setLocalButtonState("FOLLOW");
       await getPendingFollowRequests();
     } else {
       console.error("Cancel request error:", result.message);

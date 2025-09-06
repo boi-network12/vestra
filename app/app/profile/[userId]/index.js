@@ -13,6 +13,8 @@ import CustomRefreshControl from '../../../components/custom/CustomeRefreshCOntr
 import ShareProfile from '../../../components/Profile/Modal/ShareProfile';
 import InAppBrowser from '../../../browser/InAppBrowser';
 import OtherProfileDetail from '../../../components/users/OtherProfileDetail';
+import { Ionicons } from '@expo/vector-icons';
+import { useFriends } from '../../../hooks/useFriend';
 
 const { width } = Dimensions.get('window');
 const HEADER_HEIGHT = hp(25);
@@ -21,6 +23,7 @@ const AVATAR_SIZE = hp(10);
 export default function UserProfile() {
     const { userId } = useLocalSearchParams();
     const { user: currentUser } = useAuth();
+    const { following=[], getFollowing, unfollowUser, followUser, cancelFollowRequest, pendingFollowRequests } = useFriends();
     const { getOtherUserDetails, otherUserProfile } = useUser();
     const router = useRouter();
     const { isDark } = useTheme();
@@ -86,13 +89,60 @@ export default function UserProfile() {
 
 
   const renderPostItem = ({ item }) => (
-      <PostItem
-          item={item}
-          colors={colors}
-          viewMode={viewMode}
-          user={otherUserProfile}
-      />
+
+       otherUserProfile?.privacySettings?.profileVisibility === "private" ? 
+          renderPrivateDesignUi() : 
+          (
+            <PostItem
+                item={item}
+                colors={colors}
+                viewMode={viewMode}
+                user={otherUserProfile}
+            />
+          )
+        
     );
+
+    const renderPrivateDesignUi = () => {
+    return (
+      <View style={styles.privateContainer}>
+        <View
+          style={[
+            styles.iconWrapper,
+            { backgroundColor: isDark ? "rgba(59,130,246,0.2)" : "#DBEAFE" }, // dark:bg-blue-900/40 : bg-blue-100
+          ]}
+        >
+          <Ionicons
+            name="lock-closed"
+            size={48}
+            color={isDark ? "#60A5FA" : "#2563EB"}
+          />
+        </View>
+
+        <Text
+          style={[
+            styles.privateTitle,
+            { color: isDark ? colors.text : "#111827" }, // dark:text-gray-100 : text-gray-900
+          ]}
+        >
+          This Profile is Private
+        </Text>
+
+        <Text
+          style={[
+            styles.privateDescription,
+            { color: isDark ? "#9CA3AF" : "#4B5563" }, // dark:text-gray-400 : text-gray-600
+          ]}
+        >
+          You can’t see{" "}
+          {otherUserProfile?.profile?.firstName || "this user's"}{" "}
+          {otherUserProfile?.profile?.lastName || ""} posts right now. Send a
+          follow request to gain access.
+        </Text>
+      </View>
+    );
+  };
+
 
   return (
      <SafeAreaView
@@ -127,6 +177,12 @@ export default function UserProfile() {
                openInAppBrowser={openInAppBrowser}
                router={router}
                userId={userId}
+               following={following}
+               cancelFollowRequest={cancelFollowRequest}
+               pendingFollowRequests={pendingFollowRequests}
+               unfollowUser={unfollowUser}
+               followUser={followUser}
+               getFollowing={getFollowing}
             />
             
             <View style={styles.viewToggleContainer}>
@@ -158,11 +214,11 @@ export default function UserProfile() {
         )}
         contentContainerStyle={{ paddingBottom: hp(10) }}
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={[styles.noPostsText, { color: colors.subText }]}>
-              No posts yet
-            </Text>
-          </View>
+          otherUserProfile?.privacySettings?.profileVisibility === "private" ? 
+          renderPrivateDesignUi() : 
+          (
+            <Text>No post yet</Text>
+          )
         }
       />
 
@@ -254,5 +310,34 @@ const styles = StyleSheet.create({
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-  }
+  },
+  privateContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: hp(8), // equivalent to py-16
+    paddingHorizontal: wp(4), // px-4
+    textAlign: "center",
+  },
+  iconWrapper: {
+    padding: 24, // p-6
+    borderRadius: 9999, // rounded-full
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    marginBottom: 16, // mb-4
+  },
+  privateTitle: {
+    fontSize: 22, // text-2xl
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+  privateDescription: {
+    marginTop: 8,
+    fontSize: 14,
+    textAlign: "center",
+    maxWidth: wp(80),
+    lineHeight: 20,
+  },
 });
