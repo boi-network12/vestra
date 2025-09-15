@@ -44,9 +44,10 @@
       ]
     ],
     "updates": {
-      "fallbackToCacheTimeout": 0,
-      "url": "https://u.expo.dev/d2f74d10-845a-473d-b2b9-d4f0363e3f20"
+      "url": "https://u.expo.dev/d2f74d10-845a-473d-b2b9-d4f0363e3f20",
+      "fallbackToCacheTimeout": 0
     },
+    "runtimeVersion": "1.0.0",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.vestra.app",
@@ -67,14 +68,8 @@
         "backgroundColor": "#02001C"
       },
       "permissions": [
-        "CAMERA",
-        "RECORD_AUDIO",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
-        "ACCESS_FINE_LOCATION",
-        "NOTIFICATIONS",
-        "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA"
       ],
       "useNextNotificationsApi": true,
       "edgeToEdgeEnabled": true
@@ -94,7 +89,6 @@
     "experiments": {
       "typedRoutes": true
     },
-    "owner": "kamdi_02",
-    "runtimeVersion": "1.0.0"
+    "owner": "kamdi_02"
   }
 }

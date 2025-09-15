@@ -35,6 +35,7 @@ Each of these folders was originally a standalone GitHub repository. They have n
 | Frontend   | Next.js, Tailwind CSS |
 | Mobile     | React Native (Expo) |
 | Backend    | Node.js, Express, MongoDB |
+| AI/ML    | Python |
 | Auth       | JWT |
 | Hosting    | Vercel (Web), Expo EAS (Mobile), Render/Custom (Backend) |
 | Realtime   | Socket.io |
