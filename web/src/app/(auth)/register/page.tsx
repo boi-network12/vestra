@@ -36,9 +36,11 @@ export default function Register() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateForm()) {
+    if (!validateForm() || isLoading) return;
+
+    try {
       const success = await register({
         firstName: form.firstName,
         lastName: form.lastName,
@@ -47,12 +49,12 @@ export default function Register() {
       });
 
       if (success) {
-        await localStorage.setItem('pendingVerificationEmail', form.email);
+        localStorage.setItem('pendingVerificationEmail', form.email);
         toast.info('Please verify your email to complete registration.');
-        setTimeout(() => {
-          router.push(`/verify?email=${encodeURIComponent(form.email)}`);
-        }, 1000);
+        router.push(`/verify?email=${encodeURIComponent(form.email)}`);
       }
+    } catch {
+      // Error is handled in useAuth hook
     }
   };
 

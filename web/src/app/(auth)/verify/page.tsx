@@ -29,6 +29,7 @@ export default function Verify() {
     const emailFromStorage = localStorage.getItem("pendingVerificationEmail");
     if (emailFromParams) {
       setEmail(decodeURIComponent(emailFromParams));
+      localStorage.setItem("pendingVerificationEmail", decodeURIComponent(emailFromParams));
     } else if (emailFromStorage) {
       setEmail(emailFromStorage);
     }
@@ -36,14 +37,23 @@ export default function Verify() {
 
   // Redirect if user is verified
   useEffect(() => {
+    console.log("Verify useEffect: user=", user, "pathname=", pathname);
     if (user && user.isVerified === true && pathname !== "/home") {
       const redirected = localStorage.getItem("hasRedirected");
+      console.log("Redirect check: hasRedirected=", redirected);
       if (!redirected) {
         localStorage.setItem("hasRedirected", "true");
         router.replace("/home");
       }
     }
   }, [user, pathname, router]);
+  
+  // useEffect(() => {
+  //   if (user?.isVerified && !localStorage.getItem("hasRedirected")) {
+  //     localStorage.setItem("hasRedirected", "true");
+  //     router.replace("/home");
+  //   }
+  // }, [user, router]);
 
   // Resend cooldown timer
   useEffect(() => {

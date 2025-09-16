@@ -327,54 +327,7 @@ exports.login = async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
-    if (!user.isVerified) {
-      // Check daily OTP request limit
-      const today = new Date().setHours(0, 0, 0, 0);
-      if (user.verificationAttempts.lastAttempt && new Date(user.verificationAttempts.lastAttempt).setHours(0, 0, 0, 0) === today) {
-        if (user.verificationAttempts.count >= 3) {
-          return res.status(429).json({
-            success: false,
-            message: 'Too many verification requests today. Please try again tomorrow.',
-          });
-        }
-        user.verificationAttempts.count += 1;
-      } else {
-        user.verificationAttempts.count = 1;
-        user.verificationAttempts.lastAttempt = new Date();
-      }
-
-      // Generate and send new verification code
-      const verificationToken = user.createVerificationToken();
-      await user.save({ validateBeforeSave: false });
-      console.log('Generated OTP for unverified login:', verificationToken, 'for email:', email); // Debug log
-
-      try {
-        await sendVerificationEmail(user.email, user.profile.firstName, verificationToken);
-        
-        if(user.notificationSettings.emailNotifications) {
-          await addNotificationToQueue({
-            userId: user._id,
-            type: 'account_change',
-            message: `New login detected from ${processedLocation.city || 'unknown city'}, ${processedLocation.country || 'unknown country'}. Please verify your account.`,
-          })
-        }
-
-        user.verificationMethod = 'email';
-        await user.save({ validateBeforeSave: false });
-      } catch (err) {
-        console.error('Email sending error during login:', err);
-        user.verificationMethod = 'manual';
-        await user.save({ validateBeforeSave: false });
-        return res.status(500).json({ success: false, message: 'Failed to send verification email' });
-      }
-
-      return res.status(403).json({
-        success: false,
-        message: 'Please verify your account. A new verification code has been sent to your email.',
-      });
-    }
-
-    // Process location data with fallback
+    // Process location data with fallback *before* using processedLocation
     let processedLocation;
     try {
       processedLocation = await processLocation(location, req.ip);
@@ -394,6 +347,60 @@ exports.login = async (req, res) => {
         coordinates: [],
       };
     }
+
+    if (!user.isVerified) {
+      // Check daily OTP request limit
+      const today = new Date().setHours(0, 0, 0, 0);
+      if (
+        user.verificationAttempts.lastAttempt &&
+        new Date(user.verificationAttempts.lastAttempt).setHours(0, 0, 0, 0) === today
+      ) {
+        if (user.verificationAttempts.count >= 3) {
+          return res.status(429).json({
+            success: false,
+            message: 'Too many verification requests today. Please try again tomorrow.',
+          });
+        }
+        user.verificationAttempts.count += 1;
+      } else {
+        user.verificationAttempts.count = 1;
+        user.verificationAttempts.lastAttempt = new Date();
+      }
+
+      // Generate and send new verification code
+      const verificationToken = user.createVerificationToken();
+      await user.save({ validateBeforeSave: false });
+      console.log('Generated OTP for unverified login:', verificationToken, 'for email:', email); // Debug log
+
+      try {
+        await sendVerificationEmail(user.email, user.profile.firstName, verificationToken);
+
+        if (user.notificationSettings.emailNotifications) {
+          await addNotificationToQueue({
+            userId: user._id,
+            type: 'account_change',
+            message: `New login detected from ${processedLocation.city || 'unknown city'}, ${
+              processedLocation.country || 'unknown country'
+            }. Please verify your account.`,
+          });
+        }
+
+        user.verificationMethod = 'email';
+        await user.save({ validateBeforeSave: false });
+      } catch (err) {
+        console.error('Email sending error during login:', err);
+        user.verificationMethod = 'manual';
+        await user.save({ validateBeforeSave: false });
+        return res.status(500).json({ success: false, message: 'Failed to send verification email' });
+      }
+
+      return res.status(403).json({
+        success: false,
+        message: 'Please verify your account. A new verification code has been sent to your email.',
+      });
+    }
+
+    // Update user location
     user.profile.location = processedLocation;
     await user.save({ validateBeforeSave: false });
 
@@ -408,8 +415,9 @@ exports.login = async (req, res) => {
       active: true,
     });
 
-
-    user.sessions = user.sessions.filter(session => session.active && session.lastActive > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)); // 30 days
+    user.sessions = user.sessions.filter(
+      (session) => session.active && session.lastActive > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // 30 days
+    );
 
     await user.save();
 
@@ -423,16 +431,18 @@ exports.login = async (req, res) => {
         req.ip,
         loginTime
       );
-    } catch (error) {
+    } catch (err) {
       console.error('Failed to send login notification email:', err);
     }
 
     // Fetch all active sessions to return available accounts
-    const activeSessions = user.sessions.filter(session => session.active).map(session => ({
-      token: session.token,
-      device: session.device,
-      lastActive: session.lastActive,
-    }));
+    const activeSessions = user.sessions
+      .filter((session) => session.active)
+      .map((session) => ({
+        token: session.token,
+        device: session.device,
+        lastActive: session.lastActive,
+      }));
 
     res.json({
       success: true,
@@ -441,7 +451,7 @@ exports.login = async (req, res) => {
         username: user.username,
         email: user.email,
         token,
-        activeSessions, 
+        activeSessions,
       },
     });
   } catch (err) {
